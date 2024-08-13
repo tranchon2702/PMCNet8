@@ -1,0 +1,124 @@
+﻿@model LessonStatisticsViewModel
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Thống kê học tập - @Model.LessonName</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="lessonChart" style="height: 400px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.TableData != null && Model.TableData.Any())
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark">
+                    <h3 class="card-title">Danh sách dược sĩ tham gia học</h3>
+                </div>
+                <div class="card-body">
+                    <table id="participantsTable" class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tên Dược sĩ</th>
+                                <th>Số điện thoại</th>
+                                <th>Email</th>
+                                <th>Địa chỉ</th>
+                                <th>Đơn vị công tác</th>
+                                <th>Hành động</th>
+                                <th>Ngày</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.TableData)
+                            {
+                                <tr>
+                                    <td>@item.TenDuocSi</td>
+                                    <td>@item.SoDienThoai</td>
+                                    <td>@item.Email</td>
+                                    <td>@item.DiaChi</td>
+                                    <td>@item.DonViCongTac</td>
+                                    <td>@item.HanhDong</td>
+                                    <td>@item.Ngay</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <button id="exportParticipantsButton" class="btn btn-success float-right mt-3">Xuất file Excel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning mt-4">Không có dữ liệu bảng để hiển thị.</div>
+}
+
+<script>
+    var chartData = @Json.Serialize(Model.ChartData);
+    console.log("Chart data in partial view:", chartData);
+
+    $(document).ready(function () {
+        drawChart();
+        initializeDataTable();
+        setupExportButton();
+    });
+
+    function drawChart() {
+        if (!chartData) {
+            console.error("Chart data is null or undefined");
+            return;
+        }
+
+        var ctx = document.getElementById('lessonChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Vào bài học', 'Đã học xong bài học', 'Đã làm bài tập - Đạt', 'Đã làm bài tập - Chưa đạt', 'Tổng số câu hỏi'],
+                datasets: [{
+                    data: [chartData.Joins, chartData.CompletedLesson, chartData.CompleteTest, chartData.FailedTest, chartData.TotalQuestions],
+                    backgroundColor: ['#279EFF', '#96EFFF', '#4CAF50', '#FFC107', '#C80036']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.parsed.y;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+
+    function exportTableToExcel(tableId, fileName) {
+        try {
+            var table = document.getElementById(tableId);
+            var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet JS" });
+            XLSX.writeFile(wb, fileName);
+        } catch (error) {
+            console.error("Error exporting to Excel:", error);
+            alert("Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.");
+        }
+    }
+</script>

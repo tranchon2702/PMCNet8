@@ -1,0 +1,151 @@
+﻿@model CourseStatisticViewModel
+
+<!-- Course Info -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <p>
+                    <strong>Loại khóa học:</strong>
+                    <span>
+                        @switch (Model.CourseInfo.Type)
+                        {
+                            case 0:
+                                @:Khóa học có cấp chứng chỉ
+                                break;
+                            case 1:
+                                @:Khóa học cập nhật kiến thức
+                                break;
+                            case 2:
+                                @:Khóa học không cấp chứng chỉ
+                                break;
+                        }
+                    </span>
+                </p>
+                <p><strong>Số lượng bài học:</strong> <span>@Model.CourseInfo.Quantity</span></p>
+                <p><strong>Mô tả khóa học:</strong> <span>@Html.Raw(Model.CourseInfo.Description)</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Tình hình cấp phát và sử dụng mã khóa học</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Tổng mã cấp phát: </strong><span>@Model.CourseInfo.TotalKeys</span></p>
+                <div id="pie-chart" style="height: 450px;"></div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #FF6384;"></span>
+                        <span><strong>Đã sử dụng: </strong><span>@Model.CourseInfo.UsedKeys</span></span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #36A2EB;"></span>
+                        <span><strong>Chưa sử dụng: </strong><span>@Model.CourseInfo.UnusedKeys</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LineCharts -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Tình hình đạt chỉ tiêu</h3>
+            </div>
+            <div class="card-body">
+                @if (Model.AchieveTargets != null)
+                {
+                    <p>
+                        <strong>
+                            Chỉ tiêu:
+                            @if (Model.AchieveTargets.TargetStartDate != DateTime.MinValue && Model.AchieveTargets.TargetEndDate != DateTime.MinValue)
+                            {
+                                @($"từ {Model.AchieveTargets.TargetStartDate:dd/MM/yyyy} - {Model.AchieveTargets.TargetEndDate:dd/MM/yyyy}: ")
+                                @($"{Model.AchieveTargets.TargetJoin} tham gia & {Model.AchieveTargets.TargetFinish} hoàn thành khóa học")
+                            }
+                            else
+                            {
+                                <span>Chưa có dữ liệu chỉ tiêu</span>
+                            }
+                        </strong>
+                    </p>
+                }
+                <div id="curve_chart" style="width: 100%; height: 400px;"></div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #FF6384;"></span>
+                        <span>Tổng tham gia</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #36A2EB;"></span>
+                        <span>Tổng hoàn thành</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #FFCE56;"></span>
+                        <span>Chỉ tiêu tham gia</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #4BC0C0;"></span>
+                        <span>Chỉ tiêu hoàn thành</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h3 class="card-title">Danh sách các Dược sĩ chưa học bài học</h3>
+            </div>
+            <div class="card-body">
+                <table id="pharmacistTable" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Tên Dược sĩ</th>
+                            <th>Số điện thoại</th>
+                            <th>Đơn vị công tác</th>
+                            <th>Địa chỉ</th>
+                            <th>Đã xác thực</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pharmacist in Model.UnregisteredPharmacists)
+                        {
+                            <tr>
+                                <td>@pharmacist.TenDuocSi</td>
+                                <td>@pharmacist.SoDienThoai</td>
+                                <td>@pharmacist.DonViCongTac</td>
+                                <td>@pharmacist.DiaChi</td>
+                                <td>@(pharmacist.DaXacThuc ? "Đã xác thực" : "Chưa xác thực")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var defaultSelectedCourseId = '@Model.SelectedCourseId';
+    var pieData = @Html.Raw(Json.Serialize(Model.CourseInfo.PieData));
+    var achieveTargets = @Html.Raw(Json.Serialize(Model.AchieveTargets));
+
+    $(document).ready(function () {
+        initializeDataTable();
+    });
+
+</script>

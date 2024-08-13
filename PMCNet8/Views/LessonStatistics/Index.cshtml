@@ -1,0 +1,163 @@
+﻿@model List<LessonListItem>
+@{
+    ViewData["Title"] = "Thống kê theo bài học";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Thống kê theo bài học</h1>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="lessonSelect">Chọn bài học</label>
+                            <select id="lessonSelect" class="form-control">
+                                @foreach (var lesson in Model)
+                                {
+                                    <option value="@lesson.Id" data-course="@lesson.CourseName">@lesson.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="startDate">Từ ngày</label>
+                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="endDate">Đến ngày</label>
+                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="viewButton" class="btn btn-primary btn-block">Xem</button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <p><strong>Khóa học: </strong><span id="courseName"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="lessonStatisticsContainer"></div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            initializePage();
+            $('#viewButton').click(loadData);
+        });
+
+        function initializePage() {
+            $('#lessonSelect').select2();
+            flatpickr(".flatpickr", {
+                dateFormat: "d/m/Y",
+                allowInput: true,
+                locale: "vn"
+            });
+
+            $('#lessonSelect').change(function () {
+                var selectedOption = $(this).find('option:selected');
+                var courseName = selectedOption.data('course');
+                $('#courseName').text(courseName);
+            });
+        }
+
+        function loadData() {
+            var lessonId = $('#lessonSelect').val();
+            var startDate = $('#startDate').val();
+            var endDate = $('#endDate').val();
+
+            console.log("Loading data for lesson:", lessonId, "from", startDate, "to", endDate);
+
+            $.ajax({
+                url: '@Url.Action("GetLessonStatistics", "LessonStatistics")',
+                type: 'GET',
+                data: {
+                    lessonId: lessonId,
+                    startDate: startDate,
+                    endDate: endDate
+                },
+                success: function (result) {
+                    console.log("Received data from server");
+                    $('#lessonStatisticsContainer').html(result);
+                    console.log("Partial view loaded");
+                    initializeDataTables();
+                    setupExportButtons();
+                },
+                error: function (error) {
+                    console.error("Error loading data:", error);
+                    alert('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.');
+                }
+            });
+        }
+
+        function initializeDataTable() {
+            $('#participantsTable').DataTable({
+                "paging": true,
+                "lengthChange": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "responsive": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Tất cả"]],
+                "language": {
+                    "lengthMenu": "Hiển thị _MENU_ dòng mỗi trang",
+                    "zeroRecords": "Không tìm thấy dữ liệu",
+                    "info": "Hiển thị trang _PAGE_ / _PAGES_",
+                    "infoEmpty": "Không có dữ liệu",
+                    "infoFiltered": "(lọc từ _MAX_ dòng)",
+                    "search": "Tìm kiếm:",
+                    "paginate": {
+                        "first": "Đầu",
+                        "last": "Cuối",
+                        "next": "Tiếp",
+                        "previous": "Trước"
+                    }
+                }
+            });
+        }
+
+        function setupExportButtons() {
+            $("#exportParticipantsButton").click(function () {
+                exportTableToExcel("participantsTable", "danh_sach_hoc_vien.xlsx");
+            });
+        }
+
+        function exportTableToExcel(tableId, fileName) {
+            try {
+                var table = document.getElementById(tableId);
+                var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet JS" });
+                XLSX.writeFile(wb, fileName);
+            } catch (error) {
+                console.error("Error exporting to Excel:", error);
+                alert("Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.");
+            }
+        }
+    </script>
+}

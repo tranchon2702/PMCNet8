@@ -1,0 +1,176 @@
+﻿@{
+    ViewData["Title"] = "Khảo sát khóa học";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Khảo sát</h1>
+            </div>
+        </div>
+    </div>
+</section>
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="courseSelect">Chọn khảo sát</label>
+                            <select id="courseSelect" class="form-control">
+                                <option>Khảo sát trước khóa học</option>
+                                <option>Khảo sát sau khóa học</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="startDate">Từ ngày</label>
+                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="endDate">Đến ngày</label>
+                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="viewButton" class="btn btn-primary btn-block">Xem</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="surveyResults"></div>
+    </div>
+</section>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <script type="text/javascript">
+        $(function () {
+            google.charts.load('current', { 'packages': ['corechart'] });
+            google.charts.setOnLoadCallback(initializePage);
+        });
+        $(document).ready(function () {
+            initializePage();
+            $('#viewButton').click(loadData);
+        });
+
+        function initializePage() {
+            $('#courseSelect').select2();
+            flatpickr(".flatpickr", {
+                dateFormat: "d/m/Y",
+                allowInput: true,
+                locale: "vn"
+            });
+        }
+        
+
+        function loadSurveyData() {
+            var mockData = {
+                courseName: "Được sĩ thông thái 4.0 - Chuyên đề tiêu hóa và hô hấp",
+                courseType: "Khóa học có cấp chứng chỉ",
+                participantCount: 12534,
+                question1: {
+                    text: "Bạn đánh giá như thế nào về nội dung câu hỏi?",
+                    data: [
+                        ['Đánh giá', 'Số lượng'],
+                        ['Lựa chọn 1', 4000],
+                        ['Lựa chọn 2', 3000],
+                        ['Lựa chọn 3', 2500],
+                        ['Lựa chọn 4', 3034]
+                    ]
+                },
+                question2: {
+                    text: "Nội dung câu hỏi",
+                    data: [
+                        { rating: 5, percent: 55 },
+                        { rating: 4, percent: 25 },
+                        { rating: 3, percent: 20 },
+                        { rating: 2, percent: 0 },
+                        { rating: 1, percent: 0 }
+                    ]
+                },
+                question3: {
+                    text: "Nội dung câu hỏi",
+                    answers: [
+                        "Nội dung đáp án",
+                        "Nội dung đáp án",
+                        "Nội dung đáp án",
+                        "Nội dung đáp án",
+                        "Nội dung đáp án"
+                    ]
+                }
+            };
+
+            updateUI(mockData);
+        }
+
+        function updateUI(data) {
+            $('#courseName').text("Tên khóa học: " + data.courseName);
+            $('#courseType').text("Loại khóa học: " + data.courseType);
+            $('#participantCount').text("Số người tham gia khảo sát: " + data.participantCount.toLocaleString());
+
+            $('#question1').text("Câu hỏi 1: " + data.question1.text);
+            drawPieChart(data.question1.data);
+
+            $('#question2').text("Câu hỏi 2: " + data.question2.text);
+            updateRatingBars(data.question2.data);
+
+            $('#question3').text("Câu hỏi 3: " + data.question3.text);
+            updateAnswerTable(data.question3.answers);
+        }
+
+        function drawPieChart(data) {
+            var chartData = google.visualization.arrayToDataTable(data);
+            var options = {
+                legend: 'right',
+                is3D: true,
+                pieSliceText: 'label-and-value',
+                slices: {
+                    0: { color: '#4CAF50' },
+                    1: { color: '#2196F3' },
+                    2: { color: '#FFC107' },
+                    3: { color: '#F44336' }
+                }
+            };
+            var chart = new google.visualization.PieChart(document.getElementById('pieChart'));
+            chart.draw(chartData, options);
+        }
+
+        function updateRatingBars(data) {
+            var html = '';
+            data.forEach(function (item) {
+                html += `
+                            <div class="rating-bar">
+                                <div class="stars">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: ${item.percent}%"
+                                         aria-valuenow="${item.percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="percent">${item.percent}%</div>
+                            </div>
+                        `;
+            });
+            $('#ratingBars').html(html);
+        }
+
+        function updateAnswerTable(answers) {
+            var html = '';
+            answers.forEach(function (answer) {
+                html += `<tr><td>${answer}</td></tr>`;
+            });
+            $('#answerTable').html(html);
+        }
+    </script>
+}

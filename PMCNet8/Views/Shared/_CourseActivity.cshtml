@@ -1,0 +1,171 @@
+﻿@model CourseActivityViewModel
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">So sánh tình hình học tập giữa các bài học</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="columnChart" style="height: 500px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark">
+                <h3 class="card-title">Danh sách học viên đã hoàn thành khóa học</h3>
+            </div>
+            <div class="card-body">
+                <table id="completedStudents" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Tên Dược sĩ</th>
+                            <th>Số điện thoại</th>
+                            <th>Email</th>
+                            <th>Địa chỉ</th>
+                            <th>Đơn vị công tác</th>
+                            <th>Kết quả</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.TableData)
+                        {
+                            <tr>
+                                <td>@item.TenDuocSi</td>
+                                <td>@item.SoDienThoai</td>
+                                <td>@item.Email</td>
+                                <td>@item.DiaChi</td>
+                                <td>@item.DonViCongTac</td>
+                                <td>@item.KetQua</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <button id="exportCompletedButton" class="btn btn-success float-right mt-3">Xuất file Excel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log("Partial view script executing");
+    $(document).ready(function () {
+        console.log("Partial view document ready");
+        updateChart(@Html.Raw(Json.Serialize(Model.ChartData)));
+        initializeDataTable();
+        setupExportButton();
+    });
+
+    function updateChart(chartData) {
+        console.log("Updating chart with data:", chartData);
+        if (!chartData || chartData.length === 0) {
+            console.error("Chart data is empty or null");
+            return;
+        }
+
+        var processedLabels = chartData.map(item => {
+            if (item.lesson.length > 30) {
+                return item.lesson.substring(0, 27) + '...';
+            }
+            return item.lesson;
+        });
+
+        var ctx = document.getElementById('columnChart').getContext('2d');
+        var chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: processedLabels,
+                datasets: [
+                    {
+                        label: 'Học viên đã tham gia học',
+                        data: chartData.map(item => item.joins),
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                    },
+                    {
+                        label: 'Học viên đã làm bài tập - Đạt',
+                        data: chartData.map(item => item.completeTest),
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                    },
+                    {
+                        label: 'Học viên đã làm bài tập - Chưa đạt',
+                        data: chartData.map(item => item.failedTest),
+                        backgroundColor: 'rgba(255, 206, 86, 0.6)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: false,
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 0,
+                            minRotation: 0,
+                            align: 'center',
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    y: {
+                        stacked: false,
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'So sánh tình hình học tập giữa các bài học'
+                    },
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (context) {
+                                var title = chartData[context[0].dataIndex].lesson || '';
+                                return title.split(' ').reduce((acc, word, index) => {
+                                    if (index % 4 === 0 && index !== 0) acc += '\n';
+                                    acc += word + ' ';
+                                    return acc;
+                                }, '').trim();
+                            }
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        bottom: 30
+                    }
+                },
+                barPercentage: 0.8,
+                categoryPercentage: 0.9
+            }
+        });
+    }
+
+    
+
+    function setupExportButton() {
+        $("#exportCompletedButton").click(function () {
+            exportTableToExcel("completedStudents", "hoc_vien_da_hoan_thanh.xlsx");
+        });
+    }
+
+    function exportTableToExcel(tableId, fileName) {
+        try {
+            var table = document.getElementById(tableId);
+            var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet JS" });
+            XLSX.writeFile(wb, fileName);
+        } catch (error) {
+            console.error("Error exporting to Excel:", error);
+            alert("Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.");
+        }
+    }
+</script>

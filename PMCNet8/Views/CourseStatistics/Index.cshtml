@@ -1,0 +1,243 @@
+﻿@model CourseStatisticViewModel
+@{
+    ViewData["Title"] = "Thống kê theo khóa học";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Thống kê theo khóa học</h1>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <!-- Course Selection -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row align-items-end">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="courseSelect">Chọn khóa học</label>
+                                    <select id="courseSelect" class="form-control">
+                                        @foreach (var course in Model.CourseListItems)
+                                        {
+                                            <option value="@course.Id">@course.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        <!-- Course Statistics Content -->
+        <div id="courseStatisticsContent">
+            @await Html.PartialAsync("_CourseStatistics", Model)
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script>
+        google.charts.load('current', { 'packages': ['corechart'] });
+        google.charts.setOnLoadCallback(function () {
+            // Gọi initializeCharts ở đây nếu dữ liệu đã sẵn sàng khi trang load
+            if (typeof pieData !== 'undefined' && typeof achieveTargets !== 'undefined') {
+                initializeCharts();
+            }
+        });
+
+        $(document).ready(function () {
+            var $courseSelect = $('#courseSelect');
+
+            $courseSelect.select2({
+                width: '100%',
+                placeholder: "Chọn khóa học",
+                allowClear: true
+                
+            });
+
+            // Bắt sự kiện khi Select2 hoàn thành việc khởi tạo
+            $courseSelect.on('select2:open', function (e) {
+                // Chỉ thực hiện một lần
+                if (!$(this).data('select2-open-handled')) {
+                    $(this).data('select2-open-handled', true);
+
+                    // Đóng Select2 ngay lập tức
+                    $courseSelect.select2('close');
+
+                    // Load dữ liệu cho khóa học đầu tiên
+                    var firstCourseId = $courseSelect.val();
+                    if (firstCourseId) {
+                        loadCourseData(firstCourseId);
+                    }
+                }
+            });
+
+            $courseSelect.on('select2:select', function (e) {
+                var selectedCourseId = e.params.data.id;
+                loadCourseData(selectedCourseId);
+            });
+        });
+
+        function loadCourseData(selectedCourseId) {
+            $.ajax({
+                url: '@Url.Action("GetCourseStatistics", "CourseStatistics")',
+                type: 'GET',
+                data: { courseId: selectedCourseId },
+                success: function (result) {
+                    $('#courseStatisticsContent').html(result);
+                    initializeCharts();
+                    initializeDataTable();
+                },
+                error: function (error) {
+                    console.log('Error:', error);
+                }
+            });
+        }
+
+        function initializeCharts() {
+            if (typeof pieData !== 'undefined' && pieData !== null &&
+                typeof achieveTargets !== 'undefined' && achieveTargets !== null) {
+                drawPieChart();
+                drawChart();
+            } else {
+                console.error("Chart data is not available", { pieData, achieveTargets });
+            }
+        }
+
+        function drawPieChart() {
+            if (!pieData || !Array.isArray(pieData) || pieData.length === 0) {
+                console.error("Invalid pieData", pieData);
+                return;
+            }
+            var data = google.visualization.arrayToDataTable(pieData);
+            var options = {
+                title: '',
+                is3D: true,
+                colors: ['#FF6384', '#36A2EB'],
+                legend: { position: 'none' },
+                pieSliceText: 'percentage',
+                slices: {
+                    0: { color: '#FF6384' },
+                    1: { color: '#36A2EB' }
+                },
+                tooltip: { text: 'both' }
+            };
+            var pieChart = new google.visualization.PieChart(document.getElementById('pie-chart'));
+            pieChart.draw(data, options);
+        }
+
+        function calculateIntermediateDates(startDate, endDate, numberOfPoints) {
+            const dates = [];
+            const millisecondsPerDay = 24 * 60 * 60 * 1000;
+            const totalDays = Math.round((endDate - startDate) / millisecondsPerDay);
+            const daysBetweenPoints = Math.floor(totalDays / (numberOfPoints - 1));
+
+            for (let i = 0; i < numberOfPoints; i++) {
+                const currentDate = new Date(startDate.getTime() + (daysBetweenPoints * i * millisecondsPerDay));
+                dates.push(currentDate);
+            }
+
+            dates[dates.length - 1] = new Date(endDate);
+            return dates;
+        }
+        function initializeDataTable() {
+            if ($.fn.DataTable.isDataTable('#pharmacistTable')) {
+                $('#pharmacistTable').DataTable().destroy();
+            }
+            $('#pharmacistTable').DataTable({
+                "paging": true,
+                "lengthChange": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "responsive": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Tất cả"]],
+                "language": {
+                    "lengthMenu": "Hiển thị _MENU_ dòng mỗi trang",
+                    "zeroRecords": "Không tìm thấy dữ liệu",
+                    "info": "Hiển thị trang _PAGE_ / _PAGES_",
+                    "infoEmpty": "Không có dữ liệu",
+                    "infoFiltered": "(lọc từ _MAX_ dòng)",
+                    "search": "Tìm kiếm:",
+                    "paginate": {
+                        "first": "Đầu",
+                        "last": "Cuối",
+                        "next": "Tiếp",
+                        "previous": "Trước"
+                    }
+                }
+            });
+        }
+
+
+        function drawChart() {
+            var achieveTargets = {
+                TargetStartDate: "2024-04-15T00:00:00",
+                TargetEndDate: "2024-05-15T00:00:00",
+                TotalBeforeNow: 1000,
+                TotalDay: 100,
+                FinishBeforeNow: 500,
+                FinishDay: 50
+            };
+
+            var startDate = new Date(achieveTargets.TargetStartDate);
+            var endDate = new Date(achieveTargets.TargetEndDate);
+            var intermediateDates = calculateIntermediateDates(startDate, endDate, 5);
+
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Ngày');
+            data.addColumn('number', 'Tổng tham gia đến thời điểm hiện tại');
+            data.addColumn('number', 'Tổng tham gia trong ngày');
+            data.addColumn('number', 'Tổng hoàn thành đến thời điểm hiện tại');
+            data.addColumn('number', 'Tổng hoàn thành trong ngày');
+
+            intermediateDates.forEach((date, index) => {
+                var progress = index / (intermediateDates.length - 1);
+                data.addRow([
+                    date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+                    Math.round(achieveTargets.TotalBeforeNow * progress),
+                    Math.round(achieveTargets.TotalDay * progress),
+                    Math.round(achieveTargets.FinishBeforeNow * progress),
+                    Math.round(achieveTargets.FinishDay * progress)
+                ]);
+            });
+
+            var options = {
+                title: 'Tình hình đạt chỉ tiêu',
+                titleTextStyle: { fontSize: 16 },
+                legend: { position: 'none' },
+                lineWidth: 2,
+                pointSize: 6,
+                hAxis: {
+                    title: 'Ngày',
+                    titleTextStyle: { color: '#333', fontSize: 14 },
+                    slantedText: true,
+                    slantedTextAngle: 5
+                },
+                vAxis: {
+                    title: 'Số lượng',
+                    minValue: 0,
+                    titleTextStyle: { color: '#333', fontSize: 14 }
+                },
+                colors: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
+                curveType: 'function'
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+            chart.draw(data, options);
+        }
+    </script>
+}

@@ -1,0 +1,137 @@
+﻿@model List<CourseListItems>
+
+@{
+    ViewData["Title"] = "Hoạt động trên khóa học";
+}
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Hoạt động trên khóa học</h1>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="courseSelect">Chọn khóa học</label>
+                            <select id="courseSelect" class="form-control">
+                                @foreach (var course in Model)
+                                {
+                                    <option value="@course.Id">@course.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="startDate">Từ ngày</label>
+                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="endDate">Đến ngày</label>
+                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="viewButton" class="btn btn-primary btn-block">Xem</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="courseActivityContainer"></div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            initializePage();
+            $('#viewButton').click(loadData);
+        });
+
+        function initializePage() {
+            $('#courseSelect').select2();
+            flatpickr(".flatpickr", {
+                dateFormat: "d/m/Y",
+                allowInput: true,
+                locale: "vn"
+            });
+        }
+
+        function loadData() {
+            var courseId = $('#courseSelect').val();
+            var startDate = $('#startDate').val();
+            var endDate = $('#endDate').val();
+
+            console.log("Loading data for course:", courseId, "from", startDate, "to", endDate);
+
+            $.ajax({
+                url: '@Url.Action("GetCourseActivity", "CourseActivity")',
+                type: 'GET',
+                data: {
+                    courseId: courseId,
+                    startDate: startDate,
+                    endDate: endDate
+                },
+                success: function (result) {
+                    console.log("Received data from server");
+                    $('#courseActivityContainer').html(result);
+                    console.log("Partial view loaded");
+                    initializeDataTables();
+                    setupExportButtons();
+                },
+                error: function (error) {
+                    console.error("Error loading data:", error);
+                    alert('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.');
+                }
+            });
+        }
+
+        function initializeDataTables() {
+            $('#completedStudents').DataTable({
+                "paging": true,
+                "lengthChange": false,
+                "searching": false,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "responsive": true,
+            });
+        }
+
+        function setupExportButtons() {
+            $("#exportCompletedButton").click(function () {
+                exportTableToExcel("completedStudents", "hoc_vien_da_hoan_thanh.xlsx");
+            });
+        }
+
+        function exportTableToExcel(tableId, fileName) {
+            try {
+                var table = document.getElementById(tableId);
+                var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet JS" });
+                XLSX.writeFile(wb, fileName);
+            } catch (error) {
+                console.error("Error exporting to Excel:", error);
+                alert("Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.");
+            }
+        }
+    </script>
+}

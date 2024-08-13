@@ -1,0 +1,282 @@
+﻿@model PMCNet8.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Đăng nhập DashBoard";
+    Layout = "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PMC.DashBoard</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7fa;
+        }
+
+        .container-fluid {
+            height: 100vh;
+            padding: 0;
+        }
+
+        .row {
+            height: 100%;
+            margin: 0;
+        }
+
+        .login-section {
+            background-color: white;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form {
+            max-width: 350px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            width: 100px;
+            height: auto;
+            margin-bottom: 30px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .login-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .input-group {
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+            .input-group:hover, .input-group:focus-within {
+                box-shadow: 0 0 20px rgba(3, 52, 110, 0.2);
+            }
+
+        .input-group-text {
+            background-color: #f8f9fa;
+            border: none;
+            color: #03346E;
+        }
+
+        .form-floating {
+            flex: 1;
+        }
+
+            .form-floating > .form-control {
+                border: none;
+                border-radius: 0;
+                height: auto;
+                padding: 1rem 0.75rem;
+            }
+
+            .form-floating > label {
+                padding: 1rem 0.75rem;
+            }
+
+            .form-floating > .form-control:focus ~ label,
+            .form-floating > .form-control:not(:placeholder-shown) ~ label {
+                transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+                color: #03346E;
+            }
+
+        .btn-login {
+            background-color: #03346E;
+            border: none;
+            border-radius: 30px;
+            padding: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(3, 52, 110, 0.1);
+        }
+
+            .btn-login:hover {
+                background-color: #022654;
+                transform: translateY(-3px);
+                box-shadow: 0 6px 8px rgba(3, 52, 110, 0.2);
+            }
+
+            .btn-login:active {
+                transform: translateY(-1px);
+                box-shadow: 0 3px 4px rgba(3, 52, 110, 0.2);
+            }
+
+        .forgot-password {
+            color: #FF4C4C;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: #ff1a1a;
+            text-decoration: underline;
+        }
+
+        .copyright {
+            color: #999;
+            font-size: 0.8rem;
+        }
+
+        .form-group::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #03346E;
+            transition: width 0.3s ease;
+        }
+
+        .form-group:hover::after {
+            width: 100%;
+        }
+
+        .info-section {
+            background-image: url('https://www.datexcorp.com/wp-content/uploads/shutterstock_785207416.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .info-content {
+            position: relative;
+            z-index: 1;
+            color: white;
+            text-align: center;
+        }
+
+        .info-content h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .info-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .info-content p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-5 login-section">
+                <div class="login-form">
+                    <img src="https://play-lh.googleusercontent.com/sZVG2czzfh-2gHk-o9rWDcP8HUvCyrIop7LIfBPFXC58GyqHjmXRN0SMIy-Jo6UAMA" alt="Logo" class="logo">
+                    <h2 class="login-title">Login DashBoard PharmaCom</h2>
+                    <p class="login-subtitle">Please login to your account</p>
+                    <form asp-action="Login" asp-controller="Account" method="post">
+                        @if (!ViewContext.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger">
+                                <div asp-validation-summary="All" class="text-danger"></div>
+                            </div>
+                        }
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <div class="form-floating">
+                                    <input asp-for="UserName" class="form-control" placeholder="Email Address" type="text" autocomplete="off" id="floatingUsername">
+                                    <label for="floatingUsername">Email Address</label>
+                                </div>
+                            </div>
+                            <span asp-validation-for="UserName" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <div class="form-floating">
+                                    <input asp-for="Password" class="form-control" placeholder="Password" type="password" id="floatingPassword">
+                                    <label for="floatingPassword">Password</label>
+                                </div>
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-login">Log In</button>
+                    </form>
+                    <div class="text-center mt-3">
+                        <a href="#" class="forgot-password">Forgot Your Password?</a>
+                    </div>
+                    <div class="mt-3 text-center copyright">
+                        <small>Copyright © 2024 PMC. Bản quyền thuộc Công ty Cổ phần Truyền thông MediHub.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-7 info-section">
+                <div class="info-content">
+                    <h1>HỆ THỐNG DASHBOARD</h1>
+                    <h2>PHARMACOM</h2>
+                    <p>Bản quyền thuộc Công ty Cổ phần Truyền thông MediHub.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+</body>
+</html>

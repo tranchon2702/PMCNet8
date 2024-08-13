@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34902.65
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PMCNet8", "PMCNet8\PMCNet8.csproj", "{3047EB7A-2F35-44BE-8396-7CDCB101699A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Data", "Data\Data.csproj", "{B22944CE-0D21-4A00-8D40-224423B160E1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{268E3B4B-0239-4404-ABDB-58AD1F46EA50}"
+	ProjectSection(SolutionItems) = preProject
+		nlog.config = nlog.config
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3047EB7A-2F35-44BE-8396-7CDCB101699A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3047EB7A-2F35-44BE-8396-7CDCB101699A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3047EB7A-2F35-44BE-8396-7CDCB101699A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3047EB7A-2F35-44BE-8396-7CDCB101699A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B22944CE-0D21-4A00-8D40-224423B160E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B22944CE-0D21-4A00-8D40-224423B160E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B22944CE-0D21-4A00-8D40-224423B160E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B22944CE-0D21-4A00-8D40-224423B160E1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {40F507F8-CAC9-4F44-A92B-1C8377CFE966}
+	EndGlobalSection
+EndGlobal
