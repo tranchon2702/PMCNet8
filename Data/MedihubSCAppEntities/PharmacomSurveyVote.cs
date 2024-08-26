@@ -12,13 +12,13 @@ namespace Data.MedihubSCAppEntities
     {
         [Key]
         public long Id { get; set; }
-        public string VoteContent { get; set; }
+        public string? VoteContent { get; set; }
         public long PharmacomSurveyId { get; set;}
         public long PharmacomSurveyDetailId { get; set; }
-        public string Evaluation { get; set; }
+        public string? Evaluation { get; set; }
         public DateTime DateCreated { get; set; }
         public string KeyCodeActive { get; set; }
-        public Guid SubmitId { get; set;}
+        public Guid? SubmitId { get; set;}
 
         [ForeignKey("PharmacomSurveyId")]
         public PharmacomSurvey Lesson { get; set; }

@@ -7,7 +7,7 @@
                 <h3 class="card-title">Thống kê học tập - @Model.LessonName</h3>
             </div>
             <div class="card-body">
-                <canvas id="lessonChart" style="height: 400px;"></canvas>
+                <canvas id="lessonChart" style="height: 400px; width: 100%;"></canvas>
             </div>
         </div>
     </div>
@@ -61,40 +61,56 @@ else
 }
 
 <script>
-    var chartData = @Json.Serialize(Model.ChartData);
-    console.log("Chart data in partial view:", chartData);
-
+    console.log("Partial view script executing");
     $(document).ready(function () {
-        drawChart();
+        console.log("Partial view document ready");
+        var chartData = @Html.Raw(Json.Serialize(Model.ChartData));
+        console.log("Chart data:", chartData);
+        updateChart(chartData);
         initializeDataTable();
         setupExportButton();
     });
 
-    function drawChart() {
+    function updateChart(chartData) {
+        console.log("Updating chart with data:", chartData);
         if (!chartData) {
             console.error("Chart data is null or undefined");
             return;
         }
 
         var ctx = document.getElementById('lessonChart').getContext('2d');
-        new Chart(ctx, {
+        var chart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: ['Vào bài học', 'Đã học xong bài học', 'Đã làm bài tập - Đạt', 'Đã làm bài tập - Chưa đạt', 'Tổng số câu hỏi'],
-                datasets: [{
-                    data: [chartData.Joins, chartData.CompletedLesson, chartData.CompleteTest, chartData.FailedTest, chartData.TotalQuestions],
-                    backgroundColor: ['#279EFF', '#96EFFF', '#4CAF50', '#FFC107', '#C80036']
-                }]
+                datasets: [
+                    {
+                        label: 'Số lượng',
+                        data: [chartData.joins, chartData.completedLesson, chartData.completeTest, chartData.failedTest, chartData.totalQuestions],
+                        backgroundColor: ['#279EFF', '#96EFFF', '#4CAF50', '#FFC107', '#C80036']
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 0,
+                            minRotation: 0
+                        }
+                    },
                     y: {
                         beginAtZero: true
                     }
                 },
                 plugins: {
+                    title: {
+                        display: true,
+                        text: 'Thống kê hoạt động học tập'
+                    },
                     legend: {
                         display: false
                     },
@@ -105,11 +121,30 @@ else
                             }
                         }
                     }
-                }
+                },
+                layout: {
+                    padding: {
+                        bottom: 30
+                    }
+                },
+                barPercentage: 0.8,
+                categoryPercentage: 0.9
             }
+        });
+       
+    }
+
+    function initializeDataTable() {
+        $('#participantsTable').DataTable({
+            // DataTable options (as in your original code)
         });
     }
 
+    function setupExportButton() {
+        $("#exportParticipantsButton").click(function () {
+            exportTableToExcel("participantsTable", "danh_sach_hoc_vien.xlsx");
+        });
+    }
 
     function exportTableToExcel(tableId, fileName) {
         try {

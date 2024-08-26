@@ -184,60 +184,71 @@
 
 
         function drawChart() {
-            var achieveTargets = {
-                TargetStartDate: "2024-04-15T00:00:00",
-                TargetEndDate: "2024-05-15T00:00:00",
-                TotalBeforeNow: 1000,
-                TotalDay: 100,
-                FinishBeforeNow: 500,
-                FinishDay: 50
-            };
-
-            var startDate = new Date(achieveTargets.TargetStartDate);
-            var endDate = new Date(achieveTargets.TargetEndDate);
-            var intermediateDates = calculateIntermediateDates(startDate, endDate, 5);
+            if (typeof achieveTargets === 'undefined' || !achieveTargets.totalFinishs || !achieveTargets.totalJoins) {
+                console.error("Invalid or missing achieveTargets data", achieveTargets);
+                return;
+            }
 
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Ngày');
-            data.addColumn('number', 'Tổng tham gia đến thời điểm hiện tại');
-            data.addColumn('number', 'Tổng tham gia trong ngày');
-            data.addColumn('number', 'Tổng hoàn thành đến thời điểm hiện tại');
-            data.addColumn('number', 'Tổng hoàn thành trong ngày');
+            data.addColumn('number', 'Tổng tham gia');
+            data.addColumn('number', 'Tổng hoàn thành');
 
-            intermediateDates.forEach((date, index) => {
-                var progress = index / (intermediateDates.length - 1);
+            Object.keys(achieveTargets.totalFinishs).forEach(dateString => {
+                var date = new Date(dateString);
+                var formattedDate = date.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }).replace(/\//g, '/');
                 data.addRow([
-                    date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-                    Math.round(achieveTargets.TotalBeforeNow * progress),
-                    Math.round(achieveTargets.TotalDay * progress),
-                    Math.round(achieveTargets.FinishBeforeNow * progress),
-                    Math.round(achieveTargets.FinishDay * progress)
+                    formattedDate,
+                    achieveTargets.totalJoins[dateString] || 0,
+                    achieveTargets.totalFinishs[dateString] || 0
                 ]);
             });
 
             var options = {
                 title: 'Tình hình đạt chỉ tiêu',
-                titleTextStyle: { fontSize: 16 },
-                legend: { position: 'none' },
-                lineWidth: 2,
-                pointSize: 6,
+                titleTextStyle: { fontSize: 18 },
+                legend: { position: 'none' },  // Disable default legend
+                lineWidth: 3,
+                pointSize: 8,
                 hAxis: {
-                    title: 'Ngày',
-                    titleTextStyle: { color: '#333', fontSize: 14 },
-                    slantedText: true,
-                    slantedTextAngle: 5
+                    title: '',
+                    titleTextStyle: { color: '#333', fontSize: 16, bold: true },
+                    slantedText: false,
+                    slantedTextAngle: 0,
+                    textStyle: {
+                        fontSize: 15,
+                        bold: true
+                    },
+                    format: 'dd/MM/yyyy'
                 },
                 vAxis: {
-                    title: 'Số lượng',
+                    title: '',
                     minValue: 0,
-                    titleTextStyle: { color: '#333', fontSize: 14 }
+                    titleTextStyle: { color: '#333', fontSize: 16, bold: true },
+                    textStyle: { fontSize: 14 }
                 },
-                colors: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
-                curveType: 'function'
+                colors: ['#FFCE56', '#4BC0C0'],
+                curveType: 'function',
+                chartArea: {
+                    width: '80%',
+                    height: '70%'
+                },
+                height: 400,
+                width: '100%'
             };
 
             var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
             chart.draw(data, options);
         }
+
+        // Make sure to call drawChart after the data is loaded and the DOM is ready
+        $(document).ready(function () {
+            google.charts.load('current', { 'packages': ['corechart'] });
+            google.charts.setOnLoadCallback(drawChart);
+        });
     </script>
 }

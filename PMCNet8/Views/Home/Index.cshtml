@@ -159,7 +159,7 @@
                             <div class="chart-legend">
                                 <div class="legend-item">
                                     <span class="legend-color" style="background-color: #4CAF50;"></span>
-                                    <span class="legend-text">Học viên đã đăng ký</span>
+                                    <span class="legend-text">Học viên đã tham gia học</span>
                                 </div>
                                 <div class="legend-item">
                                     <span class="legend-color" style="background-color: #2196F3;"></span>
@@ -333,12 +333,12 @@
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid data received');
             }
-            const register = data.register ?? 0;
+            const study = data.study ?? 0;
             const finishCourse = data.finishCourse ?? 0;
             const finishTime = data.finishTime ?? 0;
             var chartData = google.visualization.arrayToDataTable([
-                ['', 'Học viên đã đăng ký', 'Học viên đã học ít nhất 50% giờ học', 'Học viên đã hoàn thành khóa học'],
-                ['Khóa học không cấp chứng nhận', register, finishTime , finishCourse]
+                ['', 'Học viên đã tham gia học', 'Học viên đã học ít nhất 50% giờ học', 'Học viên đã hoàn thành khóa học'],
+                ['Khóa học không cấp chứng nhận', study, finishTime , finishCourse]
             ]);
 
             var options = {

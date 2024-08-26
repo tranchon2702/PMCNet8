@@ -45,10 +45,12 @@ namespace PMCNet8.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetLessonStatistics(Guid lessonId, DateTime startDate, DateTime endDate)
+        public async Task<IActionResult> GetLessonStatistics(Guid lessonId, string startDate, string endDate)
         {
             try
             {
+                DateTime parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                DateTime parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
                 if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
                 {
                     return BadRequest("Invalid SponsorId");
@@ -66,8 +68,8 @@ namespace PMCNet8.Controllers
                     return NotFound("Lesson not found or not accessible");
                 }
 
-                var chartData = await GetChartDataAsync(lessonId, startDate, endDate);
-                var tableData = await GetTableDataAsync(lessonId, startDate, endDate);
+                var chartData = await GetChartDataAsync(lessonId, parsedStartDate, parsedEndDate);
+                var tableData = await GetTableDataAsync(lessonId, parsedStartDate, parsedEndDate);
 
                 var model = new LessonStatisticsViewModel
                 {
@@ -75,8 +77,8 @@ namespace PMCNet8.Controllers
                     CourseName = lesson.CourseName,
                     ChartData = chartData,
                     TableData = tableData,
-                    StartDate = startDate,
-                    EndDate = endDate
+                    StartDate = parsedStartDate,
+                    EndDate = parsedEndDate
                 };
 
                 return PartialView("_LessonStatistics", model);
@@ -102,12 +104,12 @@ namespace PMCNet8.Controllers
                 .ToListAsync();
         }
 
-        private async Task<ChartDataViewModel> GetChartDataAsync(Guid lessonId, DateTime startDate, DateTime endDate)
+        private async Task<ChartLessonViewModel> GetChartDataAsync(Guid lessonId, DateTime parsedStartDate, DateTime parsedEndDate)
         {
             var lessonLogs = await _logActionDbContext.LogLesson
                 .Where(ll => ll.TopicId == lessonId &&
-                             ll.DateAccess.Date >= startDate.Date &&
-                             ll.DateAccess.Date <= endDate.Date)
+                             ll.DateAccess.Date >= parsedStartDate.Date &&
+                             ll.DateAccess.Date <= parsedEndDate.Date)
                 .ToListAsync();
 
             var listQuestions = await _mediHub4RumContext.MediHubSCQuiz
@@ -117,7 +119,7 @@ namespace PMCNet8.Controllers
                 .FirstOrDefaultAsync();
             var questions = JsonConvert.DeserializeObject<List<LessonQuestion>>(listQuestions ?? string.Empty);
 
-            return new ChartDataViewModel
+            return new ChartLessonViewModel
             {
                 Joins = lessonLogs.Count(l => l.Status == "Access"),
                 CompletedLesson = lessonLogs.Count(l => l.Status == "Completed"),
@@ -127,12 +129,12 @@ namespace PMCNet8.Controllers
             };
         }
 
-        private async Task<List<LessonUserActivityViewModel>> GetTableDataAsync(Guid lessonId, DateTime startDate, DateTime endDate)
+        private async Task<List<LessonUserActivityViewModel>> GetTableDataAsync(Guid lessonId, DateTime parsedStartDate, DateTime parsedEndDate)
         {
             var userLessons = await _logActionDbContext.LogLesson
                 .Where(ll => ll.TopicId == lessonId &&
-                             ll.DateAccess.Date >= startDate.Date &&
-                             ll.DateAccess.Date <= endDate.Date)
+                             ll.DateAccess.Date >= parsedStartDate.Date &&
+                             ll.DateAccess.Date <= parsedEndDate.Date)
                 .Select(ll => new { ll.UserId, ll.Status, ll.Result, ll.DateAccess })
                 .ToListAsync();
 

@@ -64,8 +64,9 @@
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
-
     <script>
+        var dataTable;
+
         $(document).ready(function () {
             initializePage();
             $('#viewButton').click(loadData);
@@ -105,8 +106,12 @@
                     console.log("Received data from server");
                     $('#lessonStatisticsContainer').html(result);
                     console.log("Partial view loaded");
-                    initializeDataTables();
-                    setupExportButtons();
+
+                    // Đợi một chút để đảm bảo DOM đã được cập nhật
+                    setTimeout(function () {
+                        initializeOrUpdateDataTable();
+                        setupExportButtons();
+                    }, 100);
                 },
                 error: function (error) {
                     console.error("Error loading data:", error);
@@ -115,36 +120,44 @@
             });
         }
 
-        function initializeDataTable() {
-            $('#participantsTable').DataTable({
-                "paging": true,
-                "lengthChange": true,
-                "searching": true,
-                "ordering": true,
-                "info": true,
-                "autoWidth": false,
-                "responsive": true,
-                "pageLength": 10,
-                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Tất cả"]],
-                "language": {
-                    "lengthMenu": "Hiển thị _MENU_ dòng mỗi trang",
-                    "zeroRecords": "Không tìm thấy dữ liệu",
-                    "info": "Hiển thị trang _PAGE_ / _PAGES_",
-                    "infoEmpty": "Không có dữ liệu",
-                    "infoFiltered": "(lọc từ _MAX_ dòng)",
-                    "search": "Tìm kiếm:",
-                    "paginate": {
-                        "first": "Đầu",
-                        "last": "Cuối",
-                        "next": "Tiếp",
-                        "previous": "Trước"
+        function initializeOrUpdateDataTable() {
+            console.log("Initializing or updating DataTable");
+            if ($.fn.DataTable.isDataTable('#participantsTable')) {
+                console.log("DataTable already initialized, updating data...");
+                dataTable.clear().rows.add($('#participantsTable tbody tr')).draw();
+            } else {
+                console.log("Creating new DataTable");
+                dataTable = $('#participantsTable').DataTable({
+                    "paging": true,
+                    "lengthChange": true,
+                    "searching": true,
+                    "ordering": true,
+                    "info": true,
+                    "autoWidth": false,
+                    "responsive": true,
+                    "pageLength": 10,
+                    "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "Tất cả"]],
+                    "language": {
+                        "lengthMenu": "Hiển thị _MENU_ dòng mỗi trang",
+                        "zeroRecords": "Không tìm thấy dữ liệu",
+                        "info": "Hiển thị trang _PAGE_ / _PAGES_",
+                        "infoEmpty": "Không có dữ liệu",
+                        "infoFiltered": "(lọc từ _MAX_ dòng)",
+                        "search": "Tìm kiếm:",
+                        "paginate": {
+                            "first": "Đầu",
+                            "last": "Cuối",
+                            "next": "Tiếp",
+                            "previous": "Trước"
+                        }
                     }
-                }
-            });
+                });
+            }
+            console.log("DataTable initialization or update complete");
         }
 
         function setupExportButtons() {
-            $("#exportParticipantsButton").click(function () {
+            $("#exportParticipantsButton").off('click').on('click', function () {
                 exportTableToExcel("participantsTable", "danh_sach_hoc_vien.xlsx");
             });
         }

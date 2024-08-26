@@ -1,4 +1,5 @@
-﻿@{
+﻿@model SurveyViewModel
+@{
     ViewData["Title"] = "Khảo sát khóa học";
 }
 
@@ -18,10 +19,28 @@
                 <div class="row align-items-end">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="courseSelect">Chọn khảo sát</label>
-                            <select id="courseSelect" class="form-control">
-                                <option>Khảo sát trước khóa học</option>
-                                <option>Khảo sát sau khóa học</option>
+                            <label for="courseSelect">Chọn khóa học</label>
+                            @if (ViewBag.Courses != null && ((List<SelectListItem>)ViewBag.Courses).Count > 0)
+                            {
+                                <select id="courseSelect" class="form-control">
+                                    @foreach (var course in ViewBag.Courses)
+                                    {
+                                        <option value="@course.Value">@course.Text</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <p class="text-danger">@(ViewBag.ErrorMessage ?? "Không có khóa học nào được tìm thấy.")</p>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="surveyTypeSelect">Loại khảo sát</label>
+                            <select id="surveyTypeSelect" class="form-control">
+                                <option value="0">Trước khóa học</option>
+                                <option value="1">Sau khóa học</option>
                             </select>
                         </div>
                     </div>
@@ -44,9 +63,10 @@
             </div>
         </div>
 
-        <div id="surveyResults"></div>
+        <div id="CourseSurvey">@await Html.PartialAsync("_CourseSurvey", Model)</div>
     </div>
 </section>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -61,82 +81,76 @@
             google.charts.load('current', { 'packages': ['corechart'] });
             google.charts.setOnLoadCallback(initializePage);
         });
-        $(document).ready(function () {
-            initializePage();
-            $('#viewButton').click(loadData);
-        });
 
         function initializePage() {
-            $('#courseSelect').select2();
+            $('#courseSelect, #surveyTypeSelect').select2();
             flatpickr(".flatpickr", {
                 dateFormat: "d/m/Y",
                 allowInput: true,
                 locale: "vn"
             });
+            $('#viewButton').click(loadSurveyData);
         }
-        
 
         function loadSurveyData() {
-            var mockData = {
-                courseName: "Được sĩ thông thái 4.0 - Chuyên đề tiêu hóa và hô hấp",
-                courseType: "Khóa học có cấp chứng chỉ",
-                participantCount: 12534,
-                question1: {
-                    text: "Bạn đánh giá như thế nào về nội dung câu hỏi?",
-                    data: [
-                        ['Đánh giá', 'Số lượng'],
-                        ['Lựa chọn 1', 4000],
-                        ['Lựa chọn 2', 3000],
-                        ['Lựa chọn 3', 2500],
-                        ['Lựa chọn 4', 3034]
-                    ]
+            var courseId = $('#courseSelect').val();
+            var surveyType = $('#surveyTypeSelect').val();
+            var startDate = $('#startDate').val();
+            var endDate = $('#endDate').val();
+
+            $.ajax({
+                url: '/CourseSurvey/GetSurveyData',
+                type: 'GET',
+                data: {
+                    courseId: courseId,
+                    surveyType: surveyType,
+                    startDate: startDate,
+                    endDate: endDate
                 },
-                question2: {
-                    text: "Nội dung câu hỏi",
-                    data: [
-                        { rating: 5, percent: 55 },
-                        { rating: 4, percent: 25 },
-                        { rating: 3, percent: 20 },
-                        { rating: 2, percent: 0 },
-                        { rating: 1, percent: 0 }
-                    ]
+                success: function (data) {
+                    $('#CourseSurvey').html(data);
+                    setTimeout(function () {
+                        initializeCharts();
+                        initializeDataTables();
+                    }, 100); // Đợi 100ms để đảm bảo DOM đã được cập nhật
                 },
-                question3: {
-                    text: "Nội dung câu hỏi",
-                    answers: [
-                        "Nội dung đáp án",
-                        "Nội dung đáp án",
-                        "Nội dung đáp án",
-                        "Nội dung đáp án",
-                        "Nội dung đáp án"
-                    ]
+                error: function (xhr, status, error) {
+                    console.error('Lỗi khi tải dữ liệu khảo sát:', error);
+                    alert('Có lỗi xảy ra khi tải dữ liệu khảo sát. Vui lòng thử lại sau.');
                 }
-            };
-
-            updateUI(mockData);
+            });
         }
 
-        function updateUI(data) {
-            $('#courseName').text("Tên khóa học: " + data.courseName);
-            $('#courseType').text("Loại khóa học: " + data.courseType);
-            $('#participantCount').text("Số người tham gia khảo sát: " + data.participantCount.toLocaleString());
+        function initializeCharts() {
+            console.log("Initializing charts");
+            $('.pie-chart').each(function (index, element) {
+                console.log("Drawing pie chart");
+                drawPieChart($(element).data('question'), element);
+            });
 
-            $('#question1').text("Câu hỏi 1: " + data.question1.text);
-            drawPieChart(data.question1.data);
-
-            $('#question2').text("Câu hỏi 2: " + data.question2.text);
-            updateRatingBars(data.question2.data);
-
-            $('#question3').text("Câu hỏi 3: " + data.question3.text);
-            updateAnswerTable(data.question3.answers);
+            $('.rating-bars').each(function (index, element) {
+                console.log("Updating rating bars");
+                updateRatingBars($(element).data('question'), element);
+            });
         }
 
-        function drawPieChart(data) {
-            var chartData = google.visualization.arrayToDataTable(data);
+        function drawPieChart(question, element) {
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Lựa chọn');
+            data.addColumn('number', 'Phần trăm');
+
+            var statistics = question.statistics.split(', ');
+            statistics.forEach(function (stat) {
+                var parts = stat.split(': ');
+                var option = parts[0];
+                var percentage = parseFloat(parts[1]);
+                data.addRow([option, percentage]);
+            });
+
             var options = {
                 legend: 'right',
                 is3D: true,
-                pieSliceText: 'label-and-value',
+                pieSliceText: 'percentage',
                 slices: {
                     0: { color: '#4CAF50' },
                     1: { color: '#2196F3' },
@@ -144,33 +158,78 @@
                     3: { color: '#F44336' }
                 }
             };
-            var chart = new google.visualization.PieChart(document.getElementById('pieChart'));
-            chart.draw(chartData, options);
+
+            var chart = new google.visualization.PieChart(element);
+            chart.draw(data, options);
         }
 
-        function updateRatingBars(data) {
+        function updateRatingBars(question, element) {
+            console.log("updateRatingBars called with:", question);
             var html = '';
-            data.forEach(function (item) {
+            var statistics = question.statistics.split(', ');
+
+            // Sắp xếp thống kê theo số sao giảm dần
+            statistics.sort((a, b) => {
+                return parseInt(b.split(' ')[0]) - parseInt(a.split(' ')[0]);
+            });
+
+            statistics.forEach(function (stat) {
+                var parts = stat.split(': ');
+                var stars = parseInt(parts[0].split(' ')[0]);
+                var percentage = parseFloat(parts[1]);
+
                 html += `
-                            <div class="rating-bar">
-                                <div class="stars">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</div>
-                                <div class="progress">
-                                    <div class="progress-bar bg-warning" role="progressbar" style="width: ${item.percent}%"
-                                         aria-valuenow="${item.percent}" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                                <div class="percent">${item.percent}%</div>
+                    <div class="rating-bar d-flex align-items-center mb-2">
+                        <div class="stars mr-2" style="min-width: 60px;">
+                            ${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}
+                        </div>
+                        <div class="progress flex-grow-1" style="height: 20px;">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                 style="width: ${percentage}%;"
+                                 aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
                             </div>
-                        `;
+                        </div>
+                        <div class="percent ml-2" style="min-width: 40px;">${percentage}%</div>
+                    </div>
+                `;
             });
-            $('#ratingBars').html(html);
+
+            $(element).html(html);
         }
 
-        function updateAnswerTable(answers) {
-            var html = '';
-            answers.forEach(function (answer) {
-                html += `<tr><td>${answer}</td></tr>`;
+        function initializeDataTables() {
+            console.log("Initializing DataTables");
+            $('.survey-data-table').each(function () {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable().destroy();
+                }
+                $(this).DataTable({
+                    "paging": true,
+                    "lengthChange": true,
+                    "searching": true,
+                    "ordering": true,
+                    "info": true,
+                    "autoWidth": false,
+                    "responsive": true,
+                    "language": {
+                        "zeroRecords": "Không tìm thấy dữ liệu",
+                        "info": "Hiển thị trang _PAGE_ / _PAGES_",
+                        "infoEmpty": "Không có dữ liệu",
+                        "infoFiltered": "(lọc từ _MAX_ dòng)",
+                        "search": "Tìm kiếm:",
+                        "paginate": {
+                            "first": "Đầu",
+                            "last": "Cuối",
+                            "next": "Tiếp",
+                            "previous": "Trước"
+                        }
+                    }
+                });
             });
-            $('#answerTable').html(html);
         }
+
+        $(document).ready(function () {
+            loadSurveyData();
+        });
     </script>
 }

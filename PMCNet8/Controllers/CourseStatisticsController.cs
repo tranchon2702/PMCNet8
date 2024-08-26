@@ -244,72 +244,171 @@ public class CourseStatisticsController : Controller
         }
     }
 
+    //private async Task<AchieveTargetsViewModel> GetAchieveTargetsAsync(Guid courseId)
+    //{
+    //    var check = await _logActionDbContext.LogClickCourse
+    //            .AsNoTracking()
+    //            .AnyAsync(e => e.CourseId == courseId);
+    //    if (!check) return new AchieveTargetsViewModel();
+
+    //    try
+    //    {
+    //        var timeAndTarget = await _mediHub4RumContext.SponsorHubCourse
+    //            .Where(e => e.CategoryId == courseId)
+    //            .Select(e => new AchieveTargetsViewModel
+    //            {
+    //                TargetStartDate = e.TargetStartDate,
+    //                TargetEndDate = e.TargetEndDate,
+    //                TargetFinish = e.TargetFinish,
+    //                TargetJoin = e.TargetJoin,
+    //            })
+    //            .FirstOrDefaultAsync();
+
+    //        if (timeAndTarget == null) timeAndTarget = new AchieveTargetsViewModel();
+
+    //        var day1 = timeAndTarget.TargetStartDate = await _logActionDbContext.LogClickCourse
+    //            .AsNoTracking()
+    //            .Where(e => e.CourseId == courseId)
+    //            .MinAsync(e => e.CreatedDate.Date);
+
+    //        var day5 = timeAndTarget.TargetEndDate = await _logActionDbContext.LogClickCourse
+    //            .AsNoTracking()
+    //            .Where(e => e.CourseId == courseId)
+    //            .MaxAsync(e => e.CreatedDate.Date);
+    //        day5 = day5.Value.AddDays(1).AddMilliseconds(-1);
+
+
+    //        timeAndTarget.TotalJoins = new Dictionary<DateTime, int>();
+    //        timeAndTarget.TotalJoins[day1.Value] = 0;
+    //        timeAndTarget.TotalJoins[day5.Value] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day5).Select(e => e.UserId).Distinct().CountAsync();
+
+    //        timeAndTarget.TotalFinishs = new Dictionary<DateTime, int>();
+    //        timeAndTarget.TotalFinishs[day1.Value] = 0;
+    //        timeAndTarget.TotalFinishs[day5.Value] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day5).Select(e => e.UserId).Distinct().CountAsync();
+
+    //        if (timeAndTarget.TargetStartDate.Value != timeAndTarget.TargetEndDate.Value)
+    //        {
+    //            var totalDays = (timeAndTarget.TargetEndDate - timeAndTarget.TargetStartDate).Value.Days;
+    //            var middle1 = totalDays / 2;
+    //            var middle2 = middle1 / 2;
+
+    //            var day2 = timeAndTarget.TargetStartDate.Value.AddDays(middle2);
+    //            var day3 = timeAndTarget.TargetStartDate.Value.AddDays(middle1);
+    //            var day4 = timeAndTarget.TargetStartDate.Value.AddDays(middle1 + middle2);
+
+    //            timeAndTarget.TotalJoins[day2] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day2).Select(e => e.UserId).Distinct().CountAsync();
+    //            timeAndTarget.TotalJoins[day3] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day3).Select(e => e.UserId).Distinct().CountAsync();
+    //            timeAndTarget.TotalJoins[day4] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day4).Select(e => e.UserId).Distinct().CountAsync();
+
+    //            timeAndTarget.TotalFinishs[day2] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day2).Select(e => e.UserId).Distinct().CountAsync();
+    //            timeAndTarget.TotalFinishs[day3] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day3).Select(e => e.UserId).Distinct().CountAsync();
+    //            timeAndTarget.TotalFinishs[day4] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day4).Select(e => e.UserId).Distinct().CountAsync();
+    //        }
+
+    //        return timeAndTarget;
+    //    }
+    //    catch (SqlException sqlEx)
+    //    {
+    //        _logger.LogError(sqlEx, "SQL error occurred in GetAchieveTargetsAsync for courseId: {CourseId}", courseId);
+    //        throw new ApplicationException("An error occurred while retrieving data from the database.", sqlEx);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Unexpected error occurred in GetAchieveTargetsAsync for courseId: {CourseId}", courseId);
+    //        throw new ApplicationException("An unexpected error occurred while processing your request.", ex);
+    //    }
+    //}
     private async Task<AchieveTargetsViewModel> GetAchieveTargetsAsync(Guid courseId)
     {
-        var from = DateTime.Now.Date;
-        var to = from.AddDays(1);
+        var result = new AchieveTargetsViewModel();
+
         try
         {
-            var timeAndTarget = await _mediHub4RumContext.SponsorHubCourse
+            // Lấy thông tin từ SponsorHubCourse
+            var courseInfo = await _mediHub4RumContext.SponsorHubCourse
                 .Where(e => e.CategoryId == courseId)
-                .Select(e => new AchieveTargetsViewModel
+                .Select(e => new
                 {
-                    TargetStartDate = e.TargetStartDate,
-                    TargetEndDate = e.TargetEndDate,
-                    TargetFinish = e.TargetFinish,
-                    TargetJoin = e.TargetJoin,
+                    e.TargetStartDate,
+                    e.TargetEndDate,
+                    e.TargetFinish,
+                    e.TargetJoin
                 })
                 .FirstOrDefaultAsync();
 
-            if (timeAndTarget == null)
+            if (courseInfo != null)
             {
-                timeAndTarget = new AchieveTargetsViewModel();
+                result.TargetStartDate = courseInfo.TargetStartDate;
+                result.TargetEndDate = courseInfo.TargetEndDate;
+                result.TargetFinish = courseInfo.TargetFinish;
+                result.TargetJoin = courseInfo.TargetJoin;
             }
 
-            // Set default values if dates are null
-            timeAndTarget.TargetStartDate ??= DateTime.MinValue;
-            timeAndTarget.TargetEndDate ??= DateTime.MinValue;
+            // Nếu không có dữ liệu trong SponsorHubCourse, lấy từ LogClickCourse
+            if (!result.TargetStartDate.HasValue || !result.TargetEndDate.HasValue)
+            {
+                var logDates = await _logActionDbContext.LogClickCourse
+                    .Where(e => e.CourseId == courseId)
+                    .Select(e => e.CreatedDate)
+                    .ToListAsync();
 
-            // Calculate statistics
-            timeAndTarget.TotalBeforeNow = await _logActionDbContext.LogClickCourse
-                .AsNoTracking()
-                .Where(e => e.CourseId == courseId)
-                .Select(e =>e.UserId)
-                .Distinct()
-                .CountAsync();
+                if (logDates.Any())
+                {
+                    result.TargetStartDate = logDates.Min().Date;
+                    result.TargetEndDate = logDates.Max().Date.AddDays(1).AddMilliseconds(-1);
+                }
+                else
+                {
+                    // Nếu không có dữ liệu, sử dụng ngày hiện tại
+                    result.TargetStartDate = DateTime.Now.Date;
+                    result.TargetEndDate = DateTime.Now.Date.AddDays(30);
+                }
+            }
 
-            timeAndTarget.TotalDay = await _logActionDbContext.LogClickCourse
-                .AsNoTracking()
-                .Where(e => e.CourseId == courseId && e.CreatedDate >= from && e.CreatedDate < to)
-                .Distinct()
-                .CountAsync();
+            // Tính toán 5 mốc thời gian
+            var timePoints = CalculateTimePoints(result.TargetStartDate.Value, result.TargetEndDate.Value);
 
-            timeAndTarget.FinishBeforeNow = await _mediHub4RumContext.SponsorHubCourseFinish
-                .AsNoTracking()
-                .Where(e => e.CategoryId == courseId)
-                .Select(e => e.UserId)
-                .Distinct()
-                .CountAsync();
+            result.TotalJoins = new Dictionary<DateTime, int>();
+            result.TotalFinishs = new Dictionary<DateTime, int>();
 
-            timeAndTarget.FinishDay = await _mediHub4RumContext.SponsorHubCourseFinish
-                .AsNoTracking()
-                .Where(e => e.CategoryId == courseId && e.FinishDate >= from && e.FinishDate < to)
-                .Select (e =>e.UserId)
-                .Distinct()
-                .CountAsync();
+            foreach (var point in timePoints)
+            {
+                // Tính tổng số người tham gia đến thời điểm này
+                result.TotalJoins[point] = await _logActionDbContext.LogClickCourse
+                    .Where(e => e.CourseId == courseId && e.CreatedDate < point)
+                    .Select(e => e.UserId)
+                    .Distinct()
+                    .CountAsync();
 
-            return timeAndTarget;
-        }
-        catch (SqlException sqlEx)
-        {
-            _logger.LogError(sqlEx, "SQL error occurred in GetAchieveTargetsAsync for courseId: {CourseId}", courseId);
-            throw new ApplicationException("An error occurred while retrieving data from the database.", sqlEx);
+                // Tính tổng số người hoàn thành đến thời điểm này
+                result.TotalFinishs[point] = await _mediHub4RumContext.SponsorHubCourseFinish
+                    .Where(e => e.CategoryId == courseId && e.FinishDate < point)
+                    .Select(e => e.UserId)
+                    .Distinct()
+                    .CountAsync();
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred in GetAchieveTargetsAsync for courseId: {CourseId}", courseId);
-            throw new ApplicationException("An unexpected error occurred while processing your request.", ex);
+            _logger.LogError(ex, "Error in GetAchieveTargetsAsync for courseId: {CourseId}", courseId);
+            throw;
         }
+    }
+
+    private List<DateTime> CalculateTimePoints(DateTime start, DateTime end)
+    {
+        var points = new List<DateTime> { start };
+        var totalDays = (end - start).Days;
+
+        for (int i = 1; i <= 3; i++)
+        {
+            points.Add(start.AddDays(totalDays * i / 4));
+        }
+
+        points.Add(end);
+        return points;
     }
 
     [HttpGet("api/achieve-targets/{courseId}")]

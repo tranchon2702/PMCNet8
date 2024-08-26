@@ -6,10 +6,9 @@ namespace PMCNet8.Models
     {
         public string LessonName { get; set; }
         public string CourseName { get; set; }
-        public ChartDataViewModel ChartData { get; set; }
+        public ChartLessonViewModel ChartData { get; set; }
         public List<LessonUserActivityViewModel> TableData { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        
     }
 }

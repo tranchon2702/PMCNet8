@@ -43,44 +43,49 @@ using System.Runtime.InteropServices;
             return View(courses);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetCourseActivity(Guid courseId, DateTime startDate, DateTime endDate)
+    [HttpGet]
+    public async Task<IActionResult> GetCourseActivity(Guid courseId, string startDate, string endDate)
+    {
+        try
         {
-            try
+            DateTime parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+            DateTime parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+
+            var courseName = await _mediHub4RumContext.Category
+                .Where(c => c.Id == courseId)
+                .Select(c => c.Name)
+                .FirstOrDefaultAsync();
+
+            var topics = await _mediHub4RumContext.Topic
+                .Where(t => t.Category_Id == courseId)
+                .Select(t => new TopicInfo { Id = t.Id, Name = t.Name })
+                .ToListAsync();
+
+            var chartData = await GetChartDataAsync(topics, parsedStartDate, parsedEndDate);
+            var tableData = await GetTableDataAsync(courseId, parsedStartDate, parsedEndDate);
+
+            var model = new CourseActivityViewModel
             {
-                var courseName = await _mediHub4RumContext.Category
-                    .Where(c => c.Id == courseId)
-                    .Select(c => c.Name)
-                    .FirstOrDefaultAsync();
+                CourseName = courseName,
+                ChartData = chartData,
+                TableData = tableData,
+                StartDate = parsedStartDate,
+                EndDate = parsedEndDate
+            };
 
-                var topics = await _mediHub4RumContext.Topic
-                    .Where(t => t.Category_Id == courseId)
-                    .Select(t => new TopicInfo { Id = t.Id, Name = t.Name })
-                    .ToListAsync();
 
-                var chartData = await GetChartDataAsync(topics, startDate, endDate);
-                var tableData = await GetTableDataAsync(courseId, startDate, endDate);
-
-                var model = new CourseActivityViewModel
-                {
-                    CourseName = courseName,
-                    ChartData = chartData,
-                    TableData = tableData,
-                    StartDate = startDate,
-                    EndDate = endDate
-                };
-
-                _logger.LogInformation($"Returning PartialView with ChartData: {System.Text.Json.JsonSerializer.Serialize(chartData)}");
-                return PartialView("_CourseActivity", model);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while fetching course activity data");
-                return StatusCode(500, "An error occurred while processing your request");
-            }
+            _logger.LogInformation($"Returning PartialView with ChartData: {System.Text.Json.JsonSerializer.Serialize(chartData)}");
+            return PartialView("_CourseActivity", model);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while fetching course activity data");
+            return StatusCode(500, "An error occurred while processing your request");
+        }
+    }
 
-        private async Task<List<CourseListItems>> GetCoursesAsync(Guid sponsorId)
+
+    private async Task<List<CourseListItems>> GetCoursesAsync(Guid sponsorId)
         {
             return await _mediHub4RumContext.SponsorHubCourse
                 .Where(shc => shc.SponsorId == sponsorId)
@@ -92,15 +97,15 @@ using System.Runtime.InteropServices;
                 .ToListAsync();
         }
 
-        private async Task<List<ChartDataViewModel>> GetChartDataAsync(List<TopicInfo> topics, DateTime startDate, DateTime endDate)
+        private async Task<List<ChartDataViewModel>> GetChartDataAsync(List<TopicInfo> topics, DateTime parsedStartDate, DateTime parsedEndDate)
         {
             var chartData = new List<ChartDataViewModel>();
             foreach (var topic in topics)
             {
                 var topicLogs = await _logActionDbContext.LogLesson
                     .Where(ll => ll.TopicId == topic.Id &&
-                                 ll.DateAccess.Date >= startDate.Date 
-                                 && ll.DateAccess.Date <= endDate.Date)
+                                 ll.DateAccess.Date >= parsedStartDate.Date 
+                                 && ll.DateAccess.Date <= parsedEndDate.Date)
                     .ToListAsync();
 
 
@@ -139,7 +144,7 @@ using System.Runtime.InteropServices;
 
         return numerator / denominator >= passingRatio;
     }
-    private async Task<List<CourseActivityViewModel>> GetTableDataAsync(Guid courseId, DateTime startDate, DateTime endDate)
+    private async Task<List<CourseActivityViewModel>> GetTableDataAsync(Guid courseId, DateTime parsedStartDate, DateTime parsedEndDate)
         {
             var topicIds = await _mediHub4RumContext.Topic
                 .Where(t => t.Category_Id == courseId)
@@ -147,34 +152,14 @@ using System.Runtime.InteropServices;
                 .ToListAsync();
 
             var topicCount = topicIds.Count;
-
-            var userLessons = await _logActionDbContext.LogLesson
-                .Where(ll => topicIds.Contains(ll.TopicId) &&
-                             ll.DateAccess >= startDate &&
-                             ll.DateAccess <= endDate &&
-                             ll.Status == "PostTest")
-                .Select(ll => new { ll.UserId, ll.TopicId, ll.Result })
+           
+            var userCompletions = await _mediHub4RumContext.SponsorHubCourseFinish
+                .Where( e => e.CategoryId == courseId && e.FinishDate.Date >= parsedStartDate.Date && e.FinishDate.Date <= parsedEndDate.Date)
+                .Select(e => e.UserId)
                 .ToListAsync();
-
-            var userCompletions = userLessons
-                .GroupBy(ll => ll.UserId)
-                .Select(g => new
-                {
-                    UserId = g.Key,
-                    CompletedTopics = g.Where(l => !string.IsNullOrEmpty(l.Result) &&
-                                                   double.TryParse(l.Result, out var score) &&
-                                                   score >= 0.5)
-                                       .Select(l => l.TopicId)
-                                       .Distinct()
-                                       .Count()
-                })
-                .Where(uc => uc.CompletedTopics == topicCount)
-                .ToList();
-
-            var completedUserIds = userCompletions.Select(uc => uc.UserId).ToList();
-
+           
             var users = await _mediHub4RumContext.MembershipUser
-                .Where(mu => completedUserIds.Contains(mu.Id))
+                .Where(mu => userCompletions.Contains(mu.Id))
                 .ToListAsync();
 
             var appSetups = await _mediHubSCAppContext.AppSetup
