@@ -71,6 +71,14 @@ namespace PMCNet8.Controllers
                 DateTime parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
                 DateTime parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
 
+                var categorySurvey = await _mediHub4RumContext.CategorySurvey
+                    .FirstOrDefaultAsync(cs => cs.CategoryId == courseId && cs.Type == surveyType);
+
+                if (categorySurvey == null)
+                {
+                    return PartialView("_CourseSurvey", new SurveyViewModel { Questions = new List<QuestionViewModel>() });
+                }
+
                 var surveyData = await GetSurveyViewModel(courseId, surveyType, parsedStartDate, parsedEndDate);
                 surveyData.Questions = surveyData.Questions.OrderBy(q => q.Order).ToList();
                 return PartialView("_CourseSurvey", surveyData);

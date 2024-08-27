@@ -98,6 +98,11 @@
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
 
+            if (!courseId || surveyType === undefined || !startDate || !endDate) {
+                alert('Vui lòng điền đầy đủ thông tin trước khi xem khảo sát.');
+                return;
+            }
+
             $.ajax({
                 url: '/CourseSurvey/GetSurveyData',
                 type: 'GET',
@@ -108,15 +113,29 @@
                     endDate: endDate
                 },
                 success: function (data) {
-                    $('#CourseSurvey').html(data);
-                    setTimeout(function () {
-                        initializeCharts();
-                        initializeDataTables();
-                    }, 100); // Đợi 100ms để đảm bảo DOM đã được cập nhật
+                    if (data.includes("Không có dữ liệu khảo sát.")) {
+                        Swal.fire({
+                            title: 'Thông báo',
+                            text: 'Khóa học này không có khảo sát.',
+                            icon: 'info',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        $('#CourseSurvey').html(data);
+                        setTimeout(function () {
+                            initializeCharts();
+                            initializeDataTables();
+                        }, 100);
+                    }
                 },
                 error: function (xhr, status, error) {
                     console.error('Lỗi khi tải dữ liệu khảo sát:', error);
-                    alert('Có lỗi xảy ra khi tải dữ liệu khảo sát. Vui lòng thử lại sau.');
+                    Swal.fire({
+                        title: 'Lỗi',
+                        text: 'Có lỗi xảy ra khi tải dữ liệu khảo sát. Vui lòng thử lại sau.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 }
             });
         }
@@ -247,8 +266,5 @@
             });
         });
 
-        $(document).ready(function () {
-            loadSurveyData();
-        });
     </script>
 }

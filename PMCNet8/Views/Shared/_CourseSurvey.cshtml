@@ -1,14 +1,17 @@
 ﻿@model SurveyViewModel
 @if (Model != null)
 {
-    <div class="card">
-        <div class="card-body">
-            <h5 id="courseName">Tên khóa học: @Model.CourseName</h5>
-            <p id="courseType">Loại khóa học: @Model.CourseType</p>
-            <p id="surveyType">Loại khảo sát: @Model.SurveyType</p>
-            <p id="participantCount">Số người tham gia khảo sát: @Model.TotalParticipants</p>
+    @if (Model != null && Model.Questions != null && Model.Questions.Any())
+    {
+        <div class="card">
+            <div class="card-body">
+                <h5 id="courseName">Tên khóa học: @Model.CourseName</h5>
+                <p id="courseType">Loại khóa học: @Model.CourseType</p>
+                <p id="surveyType">Loại khảo sát: @Model.SurveyType</p>
+                <p id="participantCount">Số người tham gia khảo sát: @Model.TotalParticipants</p>
+            </div>
         </div>
-    </div>
+    
     @if (Model.Questions != null && Model.Questions.Any())
     {
         foreach (var question in Model.Questions)
@@ -58,8 +61,9 @@
     {
         <div class="alert alert-info">Không có câu hỏi nào trong khảo sát này.</div>
     }
-}
-else
-{
-    <div class="alert alert-warning">Không có dữ liệu khảo sát.</div>
+    }
+    else
+    {
+        <div class="alert alert-warning">Khóa học này không có khảo sát.</div>
+    }
 }
