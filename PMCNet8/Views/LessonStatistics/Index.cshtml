@@ -63,13 +63,33 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script>
         var dataTable;
 
         $(document).ready(function () {
             initializePage();
             $('#viewButton').click(loadData);
+        });
+
+        $(document).ready(function () {
+            $('#logoutButton').click(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '@Url.Action("Logout", "Account")',
+                    type: 'POST',
+                    success: function (result) {
+                        if (result.success) {
+                            window.location.href = result.redirectUrl;
+                        } else {
+                            console.log('Logout failed');
+                        }
+                    },
+                    error: function (error) {
+                        console.log('Logout error:', error);
+                    }
+                });
+            });
         });
 
         function initializePage() {
@@ -156,21 +176,6 @@
             console.log("DataTable initialization or update complete");
         }
 
-        function setupExportButtons() {
-            $("#exportParticipantsButton").off('click').on('click', function () {
-                exportTableToExcel("participantsTable", "danh_sach_hoc_vien.xlsx");
-            });
-        }
-
-        function exportTableToExcel(tableId, fileName) {
-            try {
-                var table = document.getElementById(tableId);
-                var wb = XLSX.utils.table_to_book(table, { sheet: "Sheet JS" });
-                XLSX.writeFile(wb, fileName);
-            } catch (error) {
-                console.error("Error exporting to Excel:", error);
-                alert("Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.");
-            }
-        }
+        
     </script>
 }

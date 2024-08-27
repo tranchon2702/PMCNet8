@@ -38,6 +38,13 @@ namespace Data.Data
         public DbSet<MembershipUserInfo> MembershipUserInfo { get; set; }
         public DbSet<MediHubSCQuiz> MediHubSCQuiz {  get; set; }
         public DbSet<SponsorHubCourseReport> SponsorHubCourseReport { get; set; }
+
+        public DbSet<SponsorProduct> SponsorProduct { get; set;}
+        public DbSet<SponsorCampaign > SponsorCampaign { get; set;}
+
+        public DbSet<SponsorCampaignProductCode> SponsorCampaignProductCode { get; set; }
+
+        public DbSet<SponsorCampaignProductScan> SponsorCampaignProductScan { get; set; }
     }
 
 }

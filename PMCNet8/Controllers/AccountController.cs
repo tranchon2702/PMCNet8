@@ -1,4 +1,6 @@
 ﻿using Data.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +23,7 @@ public class AccountController : Controller
         return View();
     }
 
+ 
     [HttpPost]
     public async Task<IActionResult> Login(string userName, string password)
     {
@@ -58,9 +61,10 @@ public class AccountController : Controller
         return View();
     }
 
+    [HttpPost]
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
-        return RedirectToAction("Login");
+        return Json(new { success = true, redirectUrl = Url.Action("Login", "Account") });
     }
 }

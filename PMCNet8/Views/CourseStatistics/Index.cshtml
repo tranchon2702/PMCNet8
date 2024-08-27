@@ -244,6 +244,25 @@
             var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
             chart.draw(data, options);
         }
+        $(document).ready(function () {
+            $('#logoutButton').click(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '@Url.Action("Logout", "Account")',
+                    type: 'POST',
+                    success: function (result) {
+                        if (result.success) {
+                            window.location.href = result.redirectUrl;
+                        } else {
+                            console.log('Logout failed');
+                        }
+                    },
+                    error: function (error) {
+                        console.log('Logout error:', error);
+                    }
+                });
+            });
+        });
 
         // Make sure to call drawChart after the data is loaded and the DOM is ready
         $(document).ready(function () {
