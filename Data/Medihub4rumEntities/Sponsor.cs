@@ -15,6 +15,9 @@ namespace Data.Medihub4rumEntities
         public string Name { get; set; }
         public string Address { get; set; }
         public string Phone { get; set; }
-        public SponsorHub? SponsorHub { get; set; }
+        public virtual SponsorHub SponsorHub { get; set; }
+
+        // Thêm collection navigation property cho SponsorUser
+        public virtual ICollection<SponsorUser> SponsorUsers { get; set; }
     }
 }

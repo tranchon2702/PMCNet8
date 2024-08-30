@@ -12,5 +12,7 @@ namespace PMCNet8.Models
         public int Order { get;  set; }
 
         public string DisplayOrder => $"Câu hỏi {Order}";
+        public Dictionary<string, int> OptionCounts { get; set; }
+        public Dictionary<string, double> OptionPercentages { get; set; }
     }
 }

@@ -94,7 +94,6 @@ namespace PMCNet8.Controllers
         {
             try
             {
-
                 var categorySurvey = await _mediHub4RumContext.CategorySurvey
                     .FirstOrDefaultAsync(cs => cs.CategoryId == courseId && cs.Type == surveyType);
 
@@ -166,13 +165,11 @@ namespace PMCNet8.Controllers
 
         private async Task<List<QuestionViewModel>> GetQuestionViewModels(long surveyId, DateTime parsedStartDate, DateTime parsedEndDate)
         {
-            // Lấy tất cả câu hỏi của survey
             var questions = await _mediHubSCAppContext.PharmacomSurveyDetail
                 .Where(q => q.PharmacomSurveyId == surveyId)
                 .OrderBy(q => q.Order)
                 .ToListAsync();
 
-            // Lấy câu trả lời trong khoảng thời gian chỉ định
             var answers = await _mediHubSCAppContext.PharmacomSurveyVote
                 .Where(psv => psv.PharmacomSurveyId == surveyId &&
                               psv.DateCreated >= parsedStartDate &&
@@ -201,11 +198,29 @@ namespace PMCNet8.Controllers
                     Type = question.Type,
                     Options = options,
                     Responses = responses,
-                    Order = question.Order,
-                    Statistics = question.Type.ToLower() != "text"
-                        ? CalculateStatistics(question.Type, options, responses)
-                        : ""
+                    Order = question.Order
                 };
+
+                switch (question.Type.ToLower())
+                {
+                    case "star":
+                        questionView.Statistics = CalculateStarStatistics(options, responses);
+                        break;
+                    case "radio":
+                    case "checkbox":
+                        var (optionCounts, optionPercentages) = CalculateOptionStatistics(options, responses, question.Type);
+                        questionView.OptionCounts = optionCounts;
+                        questionView.OptionPercentages = optionPercentages;
+                        questionView.Statistics = FormatStatistics(optionPercentages);
+                        break;
+                    case "text":
+                    case "input":
+                    case "radioinput":
+                    case "checkboxinput":
+                        // Không cần tính toán thống kê cho các loại câu hỏi này
+                        questionView.Statistics = "Không áp dụng";
+                        break;
+                }
 
                 questionViewModels.Add(questionView);
             }
@@ -231,52 +246,63 @@ namespace PMCNet8.Controllers
             }
         }
 
-        private string CalculateStatistics(string questionType, List<OptionViewModel> options, List<ResponseViewModel> responses)
+        private string CalculateStarStatistics(List<OptionViewModel> options, List<ResponseViewModel> responses)
         {
-            if (responses.Count == 0) return "";
+            if (responses.Count == 0) return "Không có dữ liệu";
 
+            var maxStars = options.Count;
+            var starCounts = new int[maxStars];
             var totalResponses = responses.Count;
+
+            foreach (var response in responses)
+            {
+                if (int.TryParse(response.Value, out int starValue) && starValue >= 1 && starValue <= maxStars)
+                {
+                    starCounts[starValue - 1]++;
+                }
+            }
+
             var statistics = new List<string>();
-
-            if (questionType.ToLower() == "star")
+            for (int i = 0; i < maxStars; i++)
             {
-                var maxStars = options.Count; // Số sao tối đa dựa trên số lượng options
-                var starCounts = new int[maxStars];
-
-                foreach (var response in responses)
-                {
-                    if (int.TryParse(response.Value, out int starValue) && starValue >= 1 && starValue <= maxStars)
-                    {
-                        starCounts[starValue - 1]++;
-                    }
-                }
-
-                for (int i = 0; i < maxStars; i++)
-                {
-                    var percentage = (starCounts[i] * 100.0) / totalResponses;
-                    statistics.Add($"{i + 1} sao: {percentage:F1}%");
-                }
-            }
-            else if (questionType.ToLower() == "checkbox")
-            {
-                foreach (var option in options)
-                {
-                    var count = responses.Count(r => JsonConvert.DeserializeObject<List<string>>(r.Value ?? "[]").Contains(option.Content));
-                    var percentage = (count * 100.0) / totalResponses;
-                    statistics.Add($"{option.Content}: {percentage:F1}%");
-                }
-            }
-            else // radio, input
-            {
-                foreach (var option in options)
-                {
-                    var count = responses.Count(r => r.Value == option.Content);
-                    var percentage = (count * 100.0) / totalResponses;
-                    statistics.Add($"{option.Content}: {percentage:F1}%");
-                }
+                var percentage = (starCounts[i] * 100.0) / totalResponses;
+                statistics.Add($"{i + 1} sao: {percentage:F1}%");
             }
 
             return string.Join(", ", statistics);
+        }
+
+        private (Dictionary<string, int>, Dictionary<string, double>) CalculateOptionStatistics(List<OptionViewModel> options, List<ResponseViewModel> responses, string questionType)
+        {
+            var optionCounts = options.ToDictionary(o => o.Content, _ => 0);
+            var totalResponses = responses.Count;
+
+            foreach (var response in responses)
+            {
+                var selectedOptions = questionType.ToLower() == "checkbox"
+                    ? JsonConvert.DeserializeObject<List<string>>(response.Value ?? "[]")
+                    : new List<string> { response.Value };
+
+                foreach (var selectedOption in selectedOptions)
+                {
+                    if (optionCounts.ContainsKey(selectedOption))
+                    {
+                        optionCounts[selectedOption]++;
+                    }
+                }
+            }
+
+            var optionPercentages = optionCounts.ToDictionary(
+                kvp => kvp.Key,
+                kvp => totalResponses > 0 ? (kvp.Value * 100.0) / totalResponses : 0
+            );
+
+            return (optionCounts, optionPercentages);
+        }
+
+        private string FormatStatistics(Dictionary<string, double> optionPercentages)
+        {
+            return string.Join(", ", optionPercentages.Select(kvp => $"{kvp.Key}: {kvp.Value:F1}%"));
         }
     }
 }

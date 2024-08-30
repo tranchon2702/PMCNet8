@@ -2,21 +2,34 @@
 @{
     ViewData["Title"] = "Bán hàng tích điểm";
 }
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Bán hàng tích điểm</h1>
+            </div>
+        </div>
+    </div>
+</section>
 <section class="content">
     <div class="container-fluid">
         <div class="card">
             <div class="card-body">
                 <div class="row align-items-end">
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="startDate">Từ ngày</label>
-                            <input type="date" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Từ ngày</span>
+                            </div>
+                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="endDate">Đến ngày</label>
-                            <input type="date" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Đến ngày</span>
+                            </div>
+                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -30,56 +43,138 @@
 </section>
 
 @section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let saleChart;
 
         $(document).ready(function () {
+            initializeDatePickers();
+            setupEventHandlers();
+        });
+
+        function initializeDatePickers() {
             flatpickr(".flatpickr", {
                 dateFormat: "d/m/Y",
                 allowInput: true,
                 locale: "vn"
             });
+        }
+
+        function setupEventHandlers() {
             $('#viewButton').click(function () {
                 var startDate = $('#startDate').val();
                 var endDate = $('#endDate').val();
-                loadSaleData(startDate, endDate);
+                if (startDate && endDate) {
+                    loadSaleData(startDate, endDate);
+                } else {
+                    alert('Vui lòng chọn ngày bắt đầu và ngày kết thúc');
+                }
             });
 
-            $(document).ready(function () {
-                $('#logoutButton').click(function (e) {
-                    e.preventDefault();
-                    $.ajax({
-                        url: '@Url.Action("Logout", "Account")',
-                        type: 'POST',
-                        success: function (result) {
-                            if (result.success) {
-                                window.location.href = result.redirectUrl;
-                            } else {
-                                console.log('Logout failed');
+            $(document).on('click', '.btn-group .btn', function () {
+                $('.btn-group .btn').removeClass('active');
+                $(this).addClass('active');
+                var groupBy = $(this).data('group-by');
+                loadChartData(groupBy);
+            });
+        }
+
+        function loadSaleData(startDate, endDate) {
+            $.ajax({
+                url: '@Url.Action("GetSaleData", "Sale")',
+                data: { startDate: startDate, endDate: endDate },
+                type: 'GET',
+                success: function (result) {
+                    $('#saleDataContainer').html(result);
+                    loadChartData('day');
+                },
+                error: function (error) {
+                    console.log('Error:', error);
+                    $('#saleDataContainer').html('<p>Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.</p>');
+                }
+            });
+        }
+
+        function loadChartData(groupBy) {
+            $.ajax({
+                url: '@Url.Action("GetChartData", "Sale")',
+                data: {
+                    endDate: $('#endDate').val(),
+                    groupBy: groupBy
+                },
+                success: function (data) {
+                    updateChart(data, groupBy);
+                },
+                error: function (error) {
+                    console.error('Error loading chart data:', error);
+                }
+            });
+        }
+
+        function updateChart(data, groupBy) {
+            const ctx = document.getElementById('saleChart').getContext('2d');
+
+            if (saleChart) {
+                saleChart.destroy();
+            }
+
+            saleChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.label),
+                    datasets: [
+                        {
+                            label: 'Số lượng quét',
+                            data: data.map(d => d.count),
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        },
+                        {
+                            label: 'Điểm',
+                            data: data.map(d => d.points),
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: ''
                             }
                         },
-                        error: function (error) {
-                            console.log('Logout error:', error);
+                        x: {
+                            title: {
+                                display: true,
+                                text: groupBy === 'day' ? 'Ngày' : groupBy === 'week' ? 'Tuần' : 'Tháng'
+                            }
                         }
-                    });
-                });
-            });
-            function loadSaleData(startDate, endDate) {
-                $.ajax({
-                    url: '@Url.Action("GetSaleData", "Sale")',
-                    data: {
-                        sponsorId : sponsorId,
-                        startDate: startDate, 
-                        endDate: endDate },
-                    type: 'GET',
-                    success: function (result) {
-                        $('#saleDataContainer').html(result);
                     },
-                    error: function (error) {
-                        console.log('Error:', error);
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Biểu đồ bán hàng theo ' + (groupBy === 'day' ? 'ngày' : groupBy === 'week' ? 'tuần' : 'tháng')
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: {
+                            position: 'top',
+                        }
                     }
-                });
-            }
-        });
+                }
+            });
+        }
     </script>
 }

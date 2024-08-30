@@ -33,22 +33,81 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
 
     <style>
+        .card-body {
+            padding: 0.5rem !important;
+        }
+
+        .input-group {
+            flex-wrap: nowrap;
+        }
+
+        .input-group-prepend {
+            display: flex;
+        }
+
+        .input-group-text {
+            white-space: nowrap;
+        }
+
+        #courseSelect {
+            flex: 1;
+        }
+        .input-group-text, .custom-select, .form-control, .btn {
+            height: 38px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
         .rating-bar {
+            display: flex;
+            align-items: center;
             margin-bottom: 10px;
         }
 
-        .stars {
-            font-size: 18px;
-            color: gold;
+        .rating-bars {
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        .progress {
-            height: 20px;
+        .rating-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 16px;
         }
 
-        .percent {
-            font-weight: bold;
-        }
+            .rating-bar .stars {
+                min-width: 120px;
+                color: #ffc107;
+                margin-right: 15px;
+            }
+
+            .rating-bar .progress {
+                flex-grow: 1;
+                height: 25px;
+                background-color: #e9ecef;
+                border-radius: 15px;
+                overflow: hidden;
+                box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+            }
+
+            .rating-bar .progress-bar {
+                background-color: #28a745;
+                transition: width 0.6s ease;
+            }
+
+            .rating-bar .percent {
+                min-width: 60px;
+                text-align: right;
+                font-weight: bold;
+                margin-left: 15px;
+            }
+
+            .rating-bar .fas, .rating-bar .far {
+                margin-right: 2px;
+            }
      
         .select2-container--default .select2-selection--single {
             height: calc(2.25rem + 2px) !important;

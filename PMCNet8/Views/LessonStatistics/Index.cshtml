@@ -18,9 +18,11 @@
         <div class="card">
             <div class="card-body">
                 <div class="row align-items-end">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="lessonSelect">Chọn bài học</label>
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Bài học</span>
+                            </div>
                             <select id="lessonSelect" class="form-control">
                                 @foreach (var lesson in Model)
                                 {
@@ -29,16 +31,26 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="startDate">Từ ngày</label>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Từ ngày</span>
+                            </div>
                             <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                            <div class="input-group-append">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="endDate">Đến ngày</label>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Đến ngày</span>
+                            </div>
                             <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                            <div class="input-group-append">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -47,11 +59,12 @@
                 </div>
                 <div class="row mt-2">
                     <div class="col-md-12">
-                        <p><strong>Khóa học: </strong><span id="courseName"></span></p>
+                        <p class="mb-0"><strong>Khóa học: </strong><span id="courseName"></span></p>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
         <div id="lessonStatisticsContainer"></div>
     </div>

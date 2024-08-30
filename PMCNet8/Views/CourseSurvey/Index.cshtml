@@ -18,11 +18,13 @@
             <div class="card-body">
                 <div class="row align-items-end">
                     <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="courseSelect">Chọn khóa học</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <label class="input-group-text" for="courseSelect">Chọn khóa học</label>
+                            </div>
                             @if (ViewBag.Courses != null && ((List<SelectListItem>)ViewBag.Courses).Count > 0)
                             {
-                                <select id="courseSelect" class="form-control">
+                                <select id="courseSelect" class="custom-select">
                                     @foreach (var course in ViewBag.Courses)
                                     {
                                         <option value="@course.Value">@course.Text</option>
@@ -31,28 +33,39 @@
                             }
                             else
                             {
-                                <p class="text-danger">@(ViewBag.ErrorMessage ?? "Không có khóa học nào được tìm thấy.")</p>
+                                <select id="courseSelect" class="custom-select is-invalid" disabled>
+                                    <option>Không có khóa học</option>
+                                </select>
+                                <div class="invalid-feedback" style="position: absolute; top: 100%; left: 0; width: 100%;">
+                                    @(ViewBag.ErrorMessage ?? "Không có khóa học nào được tìm thấy.")
+                                </div>
                             }
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="surveyTypeSelect">Loại khảo sát</label>
-                            <select id="surveyTypeSelect" class="form-control">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <label class="input-group-text" for="surveyTypeSelect">Loại khảo sát</label>
+                            </div>
+                            <select id="surveyTypeSelect" class="custom-select">
                                 <option value="0">Trước khóa học</option>
                                 <option value="1">Sau khóa học</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="startDate">Từ ngày</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Từ ngày</span>
+                            </div>
                             <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="endDate">Đến ngày</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Đến ngày</span>
+                            </div>
                             <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
                         </div>
                     </div>
@@ -62,9 +75,9 @@
                 </div>
             </div>
         </div>
-
-        <div id="CourseSurvey">@await Html.PartialAsync("_CourseSurvey", Model)</div>
     </div>
+
+    <div id="CourseSurvey">@await Html.PartialAsync("_CourseSurvey", Model)</div>
 </section>
 
 @section Scripts {
@@ -74,12 +87,14 @@
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
     <script type="text/javascript">
         $(function () {
-            google.charts.load('current', { 'packages': ['corechart'] });
-            google.charts.setOnLoadCallback(initializePage);
+            initializePage();
+        });
+
+        $(document).ready(function () {
+            initializeDataTables();
         });
 
         function initializePage() {
@@ -98,11 +113,6 @@
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
 
-            if (!courseId || surveyType === undefined || !startDate || !endDate) {
-                alert('Vui lòng điền đầy đủ thông tin trước khi xem khảo sát.');
-                return;
-            }
-
             $.ajax({
                 url: '/CourseSurvey/GetSurveyData',
                 type: 'GET',
@@ -113,111 +123,63 @@
                     endDate: endDate
                 },
                 success: function (data) {
-                    if (data.includes("Không có dữ liệu khảo sát.")) {
-                        Swal.fire({
-                            title: 'Thông báo',
-                            text: 'Khóa học này không có khảo sát.',
-                            icon: 'info',
-                            confirmButtonText: 'OK'
-                        });
-                    } else {
-                        $('#CourseSurvey').html(data);
-                        setTimeout(function () {
-                            initializeCharts();
-                            initializeDataTables();
-                        }, 100);
-                    }
+                    $('#CourseSurvey').html(data);
+                    initializeCharts();
+                    initializeDataTables();
                 },
                 error: function (xhr, status, error) {
                     console.error('Lỗi khi tải dữ liệu khảo sát:', error);
-                    Swal.fire({
-                        title: 'Lỗi',
-                        text: 'Có lỗi xảy ra khi tải dữ liệu khảo sát. Vui lòng thử lại sau.',
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
+                    alert('Có lỗi xảy ra khi tải dữ liệu khảo sát. Vui lòng thử lại sau.');
                 }
             });
         }
 
         function initializeCharts() {
-            console.log("Initializing charts");
-            $('.pie-chart').each(function (index, element) {
-                console.log("Drawing pie chart");
-                drawPieChart($(element).data('question'), element);
+            $('.chart-canvas').each(function () {
+                var ctx = this.getContext('2d');
+                var questionType = $(this).data('question-type');
+                var options = $(this).data('options');
+                var percentages = $(this).data('percentages');
+
+                var labels = options.map(function (option) { return option.content; });
+                var data = labels.map(function (label) { return percentages[label] || 0; });
+
+                var chartType = questionType.toLowerCase() === 'checkbox' ? 'bar' : 'pie';
+
+                new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 206, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)',
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: questionType.toLowerCase() === 'checkbox' ? 'Biểu đồ cột' : 'Biểu đồ tròn'
+                            }
+                        }
+                    }
+                });
             });
-
-            $('.rating-bars').each(function (index, element) {
-                console.log("Updating rating bars");
-                updateRatingBars($(element).data('question'), element);
-            });
-        }
-
-        function drawPieChart(question, element) {
-            var data = new google.visualization.DataTable();
-            data.addColumn('string', 'Lựa chọn');
-            data.addColumn('number', 'Phần trăm');
-
-            var statistics = question.statistics.split(', ');
-            statistics.forEach(function (stat) {
-                var parts = stat.split(': ');
-                var option = parts[0];
-                var percentage = parseFloat(parts[1]);
-                data.addRow([option, percentage]);
-            });
-
-            var options = {
-                legend: 'right',
-                is3D: true,
-                pieSliceText: 'percentage',
-                slices: {
-                    0: { color: '#4CAF50' },
-                    1: { color: '#2196F3' },
-                    2: { color: '#FFC107' },
-                    3: { color: '#F44336' }
-                }
-            };
-
-            var chart = new google.visualization.PieChart(element);
-            chart.draw(data, options);
-        }
-
-        function updateRatingBars(question, element) {
-            console.log("updateRatingBars called with:", question);
-            var html = '';
-            var statistics = question.statistics.split(', ');
-
-            // Sắp xếp thống kê theo số sao giảm dần
-            statistics.sort((a, b) => {
-                return parseInt(b.split(' ')[0]) - parseInt(a.split(' ')[0]);
-            });
-
-            statistics.forEach(function (stat) {
-                var parts = stat.split(': ');
-                var stars = parseInt(parts[0].split(' ')[0]);
-                var percentage = parseFloat(parts[1]);
-
-                html += `
-                    <div class="rating-bar d-flex align-items-center mb-2">
-                        <div class="stars mr-2" style="min-width: 60px;">
-                            ${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}
-                        </div>
-                        <div class="progress flex-grow-1" style="height: 20px;">
-                            <div class="progress-bar bg-primary" role="progressbar"
-                                 style="width: ${percentage}%;"
-                                 aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <div class="percent ml-2" style="min-width: 40px;">${percentage}%</div>
-                    </div>
-                `;
-            });
-
-            $(element).html(html);
         }
 
         function initializeDataTables() {
             console.log("Initializing DataTables");
+
             $('.survey-data-table').each(function () {
                 if ($.fn.DataTable.isDataTable(this)) {
                     $(this).DataTable().destroy();
@@ -246,6 +208,7 @@
                 });
             });
         }
+
         $(document).ready(function () {
             $('#logoutButton').click(function (e) {
                 e.preventDefault();
@@ -265,6 +228,5 @@
                 });
             });
         });
-
     </script>
 }

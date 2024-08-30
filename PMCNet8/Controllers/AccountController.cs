@@ -3,14 +3,20 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 public class AccountController : Controller
 {
     private readonly Medihub4rumDbContext _context;
+    private readonly ILogger<AccountController> _logger;
 
-    public AccountController(Medihub4rumDbContext context)
+    public AccountController(Medihub4rumDbContext context, ILogger<AccountController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -23,39 +29,49 @@ public class AccountController : Controller
         return View();
     }
 
- 
     [HttpPost]
     public async Task<IActionResult> Login(string userName, string password)
     {
-        var user = await _context.UserAccount
-         .FirstOrDefaultAsync(u => u.UserName == userName && u.Password == password);
-
-        if (user != null)
+        try
         {
-            var sponsorUser = await _context.SponsorUser
-                .FirstOrDefaultAsync(su => su.UserId == user.Id);
+            var user = await _context.UserAccount
+                .Include(u => u.SponsorUsers)
+                    .ThenInclude(su => su.Sponsor)
+                .FirstOrDefaultAsync(u => u.UserName == userName && u.Password == password);
 
-            if (sponsorUser != null)
+            if (user != null)
             {
-                var sponsor = await _context.Sponsor
-                    .FirstOrDefaultAsync(s => s.Id == sponsorUser.SponsorId);
-
-                if (sponsor != null)
+                var sponsorUser = user.SponsorUsers.FirstOrDefault();
+                if (sponsorUser != null)
                 {
-                    HttpContext.Session.SetString("UserId", user.Id.ToString());
-                    HttpContext.Session.SetString("SponsorId", sponsorUser.SponsorId.ToString());
-                    HttpContext.Session.SetString("SponsorName", sponsor.Name);
-                    return RedirectToAction("Index", "Home");
-                }   
+                    var sponsor = sponsorUser.Sponsor;
+                    if (sponsor != null)
+                    {
+                        HttpContext.Session.SetString("UserId", user.Id.ToString());
+                        HttpContext.Session.SetString("SponsorId", sponsor.Id.ToString());
+                        HttpContext.Session.SetString("SponsorName", sponsor.Name);
+                        return RedirectToAction("Index", "Home");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Sponsor not found for SponsorUser with UserId: {user.Id}");
+                        ModelState.AddModelError("", "Không tìm thấy thông tin nhà tài trợ.");
+                    }
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Tài khoản không phải là nhà tài trợ.");
+                }
             }
             else
             {
-                ModelState.AddModelError("", "Tài khoản không phải là nhà tài trợ.");
+                ModelState.AddModelError("", "Tên đăng nhập hoặc mật khẩu không đúng.");
             }
         }
-        else
+        catch (Exception ex)
         {
-            ModelState.AddModelError("", "Tên đăng nhập hoặc mật khẩu không đúng.");
+            _logger.LogError(ex, "Lỗi xảy ra trong quá trình đăng nhập");
+            ModelState.AddModelError("", "Đã xảy ra lỗi trong quá trình đăng nhập. Vui lòng thử lại sau.");
         }
 
         return View();

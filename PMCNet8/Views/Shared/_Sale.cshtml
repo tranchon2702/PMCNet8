@@ -1,77 +1,104 @@
-﻿@model SaleViewModel
-
-<div id="saleDataContainer">
-<div class="row">
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-success">
-            <div class="inner">
-                <p>Khách hàng</p>
-                <h3>@Model.CustomerCount</h3>
+﻿@model PMCNet8.Models.SaleViewModel
+@if (Model != null && Model.SponsorProducts != null && Model.SponsorProducts.Any())
+{
+    <div class="row">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>@Model.CustomerCount</h3>
+                    <p>Khách hàng</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
             </div>
-            <div class="icon">
-                <i class="fas fa-book-reader"></i>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>@Model.ProductCount</h3>
+                    <p>Sản phẩm đã quét</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-barcode"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>@Model.TotalAmount</h3>
+                    <p>Tổng điểm thưởng</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>@Model.AveragePerProduct.ToString("N2")</h3>
+                    <p>Điểm/Sản phẩm</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-info">
-            <div class="inner">
-                <p>Sản phẩm</p>
-                <h3>@Model.ProductCount</h3>
-            </div>
-            <div class="icon">
-                <i class="fas fa-user-graduate"></i>
-            </div>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Chi tiết sản phẩm</h3>
         </div>
-    </div>
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-warning">
-            <div class="inner">
-                <p>Điểm thưởng</p>
-                <h3>@Model.TotalAmount</h3>
-            </div>
-            <div class="icon">
-                <i class="fas fa-certificate"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-6">
-        <div class="small-box bg-danger">
-            <div class="inner">
-                <p>Điểm/Sản phẩm</p>
-                <h3>@Model.AveragePerProduct.ToString("N2")</h3>
-            </div>
-            <div class="icon">
-                <i class="fas fa-chart-line"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Chi tiết sản phẩm</h3>
-    </div>
-    <div class="card-body">
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Sản phẩm</th>
-                    <th>Số lượng</th>
-                    <th>Số điểm</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var product in Model.SponsorProducts)
-                {
+        <div class="card-body">
+            <table class="table table-bordered table-striped">
+                <thead>
                     <tr>
-                        <td>@product.ProductName</td>
-                        <td>@product.TotalScans</td>
-                        <td>@product.TotalPoints</td>
+                        <th style="text-align:center">STT</th>
+                        <th style="text-align:center">Sản phẩm</th>
+                        <th style="text-align:center">Số lượng đã quét</th>
+                        <th style="text-align:center">Số điểm đã quét</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.SponsorProducts.Count; i++)
+                    {
+                        var product = Model.SponsorProducts[i];
+                        <tr>
+                            <td style="text-align:center">@(i + 1)</td>
+                            <td>@product.ProductName</td>
+                            <td style="text-align:center">@product.TotalScans</td>
+                            <td style="text-align:center">@product.TotalPoints</td>
+                        </tr>
+                    }
+                    <tr>
+                        <td colspan="2"><strong>Tổng cộng</strong></td>
+                        <td style="text-align:center"><strong>@Model.SponsorProducts.Sum(x => x.TotalScans)</strong></td>
+                        <td style="text-align:center"><strong>@Model.SponsorProducts.Sum(x => x.TotalPoints)</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-</div>
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3 class="card-title">Biểu đồ bán hàng</h3>
+        </div>
+        <div class="card-body">
+            <div class="btn-group mb-3" role="group">
+                <button type="button" class="btn btn-secondary active" data-group-by="day">Ngày</button>
+                <button type="button" class="btn btn-secondary" data-group-by="week">Tuần</button>
+                <button type="button" class="btn btn-secondary" data-group-by="month">Tháng</button>
+            </div>
+
+            <canvas id="saleChart"></canvas>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        @(string.IsNullOrEmpty(Model?.NoDataMessage) ? "Không có dữ liệu cho khoảng thời gian đã chọn." : Model.NoDataMessage)
+    </div>
+}

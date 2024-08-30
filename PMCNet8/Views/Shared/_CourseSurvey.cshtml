@@ -1,69 +1,111 @@
 ﻿@model SurveyViewModel
-@if (Model != null)
+@if (Model != null && Model.Questions != null && Model.Questions.Any())
 {
-    @if (Model != null && Model.Questions != null && Model.Questions.Any())
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5>Tên khóa học: @Model.CourseName</h5>
+            <p>Loại khóa học: @Model.CourseType</p>
+            <p>Số người tham gia khảo sát: @Model.TotalParticipants</p>
+        </div>
+    </div>
+
+    @for (int i = 0; i < Model.Questions.Count; i++)
     {
-        <div class="card">
+        var question = Model.Questions[i];
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3 class="card-title">
+                    @if (i != 0 && i != Model.Questions.Count - 1)
+                    {
+                        <span>@question.Order</span>
+
+                        <span>.</span>
+                    }
+                    @question.QuestionTitle
+                </h3>
+            </div>
             <div class="card-body">
-                <h5 id="courseName">Tên khóa học: @Model.CourseName</h5>
-                <p id="courseType">Loại khóa học: @Model.CourseType</p>
-                <p id="surveyType">Loại khảo sát: @Model.SurveyType</p>
-                <p id="participantCount">Số người tham gia khảo sát: @Model.TotalParticipants</p>
+                @switch (question.Type.ToLower())
+                {
+                    case "star":
+                        <div class="rating-bars">
+                            @{
+                                var maxStars = 5;
+                                var statistics = question.Statistics.Split(", ");
+                                var percentages = new Dictionary<int, double>();
+
+                                foreach (var stat in statistics)
+                                {
+                                    var parts = stat.Split(": ");
+                                    var stars = int.Parse(parts[0].Split(' ')[0]);
+                                    var percentage = double.Parse(parts[1].TrimEnd('%'));
+                                    percentages[stars] = percentage;
+                                }
+
+                                for (int j = maxStars; j >= 1; j--)
+                                {
+                                    var percentage = percentages.ContainsKey(j) ? percentages[j] : 0;
+                                    <div class="rating-bar">
+                                        <div class="stars" title="@j sao">
+                                            @for (int star = 0; star < j; star++)
+                                            {
+                                                <i class="fas fa-star"></i>
+                                            }
+                                            @for (int emptyStar = 0; emptyStar < (maxStars - j); emptyStar++)
+                                            {
+                                                <i class="far fa-star"></i>
+                                            }
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar"
+                                                 style="width: @percentage%"
+                                                 aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <div class="percent">@percentage.ToString("F1")%</div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        break;
+                    case "radio":
+                    case "checkbox":
+                        <div class="chart-container" style="position: relative; height:40vh; width:80vw">
+                            <canvas class="chart-canvas"
+                                    data-question-type="@question.Type"
+                                    data-options="@Json.Serialize(question.Options)"
+                                    data-percentages="@Json.Serialize(question.OptionPercentages)">
+                            </canvas>
+                        </div>
+                        break;
+                    case "text":
+                    case "input":
+                    case "radioinput":
+                    case "checkboxinput":
+                        <table class="table table-bordered table-striped survey-data-table">
+                            <thead>
+                                <tr>
+                                    <th>Đáp án</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var response in question.Responses)
+                                {
+                                    <tr><td>@response.Value</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                        break;
+                }
+                @if (!string.IsNullOrEmpty(question.Statistics))
+                {
+                    <p class="mt-3">Thống kê: @question.Statistics</p>
+                }
             </div>
         </div>
-    
-    @if (Model.Questions != null && Model.Questions.Any())
-    {
-        foreach (var question in Model.Questions)
-        {
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h3 class="card-title">@question.Order: @question.QuestionTitle</h3>
-                </div>
-                <div class="card-body">
-                    @switch (question.Type.ToLower())
-                    {
-                        case "radio":
-                        case "checkbox":
-                        case "checkboxinput":
-                            <div class="pie-chart" data-question="@Html.Raw(Json.Serialize(question))" style="width: 100%; height: 400px;"></div>
-                            break;
-                        case "star":
-                            <div class="rating-bars" data-question="@Html.Raw(Json.Serialize(question))" data-type="star"></div>
-                            break;
-                        case "text":
-                        case "input":
-                        case "radioinput":
-                            <table id="textResponseTable_@question.QuestionId" class="table table-bordered text-response-table survey-data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Đáp án</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var response in question.Responses)
-                                    {
-                                        <tr><td>@response.Value</td></tr>
-                                    }
-                                </tbody>
-                            </table>
-                            break;
-                    }
-                    @if (!string.IsNullOrEmpty(question.Statistics))
-                    {
-                        <p class="mt-3">Thống kê: @question.Statistics</p>
-                    }
-                </div>
-            </div>
-        }
     }
-    else
-    {
-        <div class="alert alert-info">Không có câu hỏi nào trong khảo sát này.</div>
-    }
-    }
-    else
-    {
-        <div class="alert alert-warning">Khóa học này không có khảo sát.</div>
-    }
+}
+else
+{
+    <div class="alert alert-info mt-4">Không có dữ liệu khảo sát cho khóa học này.</div>
 }
