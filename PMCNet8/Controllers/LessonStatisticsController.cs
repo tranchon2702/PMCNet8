@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using PMCNet8.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace PMCNet8.Controllers
 {
@@ -104,14 +105,15 @@ namespace PMCNet8.Controllers
                 .ToListAsync();
         }
 
-        private async Task<ChartLessonViewModel> GetChartDataAsync(Guid lessonId, DateTime parsedStartDate, DateTime parsedEndDate)
+        private async Task<ChartLessonViewModel> GetChartDataAsync(Guid lessonId, DateTime? parsedStartDate, DateTime? parsedEndDate)
         {
-            var lessonLogs = await _logActionDbContext.LogLesson
-                .Where(ll => ll.TopicId == lessonId &&
-                             ll.DateAccess.Date >= parsedStartDate.Date &&
-                             ll.DateAccess.Date <= parsedEndDate.Date)
-                .ToListAsync();
+            var query =  _logActionDbContext.LogLesson
+                .Where(ll => ll.TopicId == lessonId);
 
+            if (parsedStartDate != null) query = query.Where(ll => ll.DateAccess.Date >= parsedStartDate);
+            if (parsedEndDate != null) query = query.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
+
+            var lessonLogs = await query.ToListAsync();
             var listQuestions = await _mediHub4RumContext.MediHubSCQuiz
                 .Where(t => t.TopicId == lessonId)
                 .Select(t => t.QuizQuestions)
@@ -129,15 +131,14 @@ namespace PMCNet8.Controllers
             };
         }
 
-        private async Task<List<LessonUserActivityViewModel>> GetTableDataAsync(Guid lessonId, DateTime parsedStartDate, DateTime parsedEndDate)
+        private async Task<List<LessonUserActivityViewModel>> GetTableDataAsync(Guid lessonId, DateTime? parsedStartDate, DateTime? parsedEndDate)
         {
-            var userLessons = await _logActionDbContext.LogLesson
-                .Where(ll => ll.TopicId == lessonId &&
-                             ll.DateAccess.Date >= parsedStartDate.Date &&
-                             ll.DateAccess.Date <= parsedEndDate.Date)
-                .Select(ll => new { ll.UserId, ll.Status, ll.Result, ll.DateAccess })
-                .ToListAsync();
+            var userQuery = _logActionDbContext.LogLesson.Where(ll => ll.TopicId == lessonId);
 
+            if (parsedStartDate != null) userQuery = userQuery.Where(ll => ll.DateAccess.Date >= parsedStartDate);
+            if (parsedEndDate != null) userQuery = userQuery.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
+
+            var userLessons = await userQuery.Select(ll => new { ll.UserId, ll.Status, ll.Result, ll.DateAccess }).ToListAsync();
             var userIds = userLessons.Select(ul => ul.UserId).Distinct().ToList();
 
             var users = await _mediHub4RumContext.MembershipUser
