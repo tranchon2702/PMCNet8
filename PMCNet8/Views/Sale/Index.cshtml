@@ -52,6 +52,7 @@
         $(document).ready(function () {
             initializeDatePickers();
             setupEventHandlers();
+            loadInitialData();
         });
 
         function initializeDatePickers() {
@@ -62,15 +63,31 @@
             });
         }
 
+        $(document).ready(function () {
+            $('#logoutButton').click(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '@Url.Action("Logout", "Account")',
+                    type: 'POST',
+                    success: function (result) {
+                        if (result.success) {
+                            window.location.href = result.redirectUrl;
+                        } else {
+                            console.log('Logout failed');
+                        }
+                    },
+                    error: function (error) {
+                        console.log('Logout error:', error);
+                    }
+                });
+            });
+        });
+
         function setupEventHandlers() {
             $('#viewButton').click(function () {
                 var startDate = $('#startDate').val();
                 var endDate = $('#endDate').val();
-                if (startDate && endDate) {
-                    loadSaleData(startDate, endDate);
-                } else {
-                    alert('Vui lòng chọn ngày bắt đầu và ngày kết thúc');
-                }
+                loadSaleData(startDate, endDate);
             });
 
             $(document).on('click', '.btn-group .btn', function () {
@@ -81,14 +98,17 @@
             });
         }
 
-        function loadSaleData(startDate, endDate) {
+        function loadInitialData() {
+            loadSaleData();
+        }
+
+        function loadSaleData(startDate = null, endDate = null) {
             $.ajax({
                 url: '@Url.Action("GetSaleData", "Sale")',
                 data: { startDate: startDate, endDate: endDate },
                 type: 'GET',
                 success: function (result) {
                     $('#saleDataContainer').html(result);
-                    loadChartData('day');
                 },
                 error: function (error) {
                     console.log('Error:', error);
@@ -98,10 +118,16 @@
         }
 
         function loadChartData(groupBy) {
+            var endDate = $('#endDate').val();
+            if (!endDate) {
+                alert('Vui lòng chọn thời gian đến ngày');
+                return;
+            }
+
             $.ajax({
                 url: '@Url.Action("GetChartData", "Sale")',
                 data: {
-                    endDate: $('#endDate').val(),
+                    endDate: endDate,
                     groupBy: groupBy
                 },
                 success: function (data) {
@@ -109,9 +135,15 @@
                 },
                 error: function (error) {
                     console.error('Error loading chart data:', error);
+                    if (error.responseJSON && error.responseJSON.message) {
+                        alert(error.responseJSON.message);
+                    } else {
+                        alert('Có lỗi xảy ra khi tải dữ liệu biểu đồ. Vui lòng thử lại.');
+                    }
                 }
             });
         }
+
 
         function updateChart(data, groupBy) {
             const ctx = document.getElementById('saleChart').getContext('2d');

@@ -49,16 +49,22 @@ namespace PMCNet8.Controllers
                 if (courses.Count == 0)
                 {
                     ViewBag.ErrorMessage = "Không có khóa học nào được tìm thấy.";
+                    return View(new SurveyViewModel());
                 }
+
+                // Lấy dữ liệu khảo sát cho khóa học đầu tiên
+                var firstCourseId = Guid.Parse(courses.First().Value);
+                var initialSurveyData = await GetSurveyViewModel(firstCourseId, 0, DateTime.MinValue, DateTime.MaxValue);
+
+                return View(initialSurveyData);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi lấy danh sách khóa học");
                 ViewBag.ErrorMessage = "Đã xảy ra lỗi khi tải danh sách khóa học.";
                 ViewBag.Courses = new List<SelectListItem>();
+                return View(new SurveyViewModel());
             }
-
-            return View();
         }
 
         [HttpGet]
@@ -68,8 +74,19 @@ namespace PMCNet8.Controllers
             {
                 _logger.LogInformation($"Đang lấy dữ liệu khảo sát: CourseId={courseId}, SurveyType={surveyType}, StartDate={startDate}, EndDate={endDate}");
 
-                DateTime parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
-                DateTime parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                DateTime parsedStartDate, parsedEndDate;
+
+                if (string.IsNullOrEmpty(startDate) || string.IsNullOrEmpty(endDate))
+                {
+                    // Nếu không có ngày được chọn, lấy toàn bộ dữ liệu
+                    parsedStartDate = DateTime.MinValue;
+                    parsedEndDate = DateTime.MaxValue;
+                }
+                else
+                {
+                    parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture).AddDays(1).AddSeconds(-1);
+                }
 
                 var categorySurvey = await _mediHub4RumContext.CategorySurvey
                     .FirstOrDefaultAsync(cs => cs.CategoryId == courseId && cs.Type == surveyType);
@@ -213,13 +230,7 @@ namespace PMCNet8.Controllers
                         questionView.OptionPercentages = optionPercentages;
                         questionView.Statistics = FormatStatistics(optionPercentages);
                         break;
-                    case "text":
-                    case "input":
-                    case "radioinput":
-                    case "checkboxinput":
-                        // Không cần tính toán thống kê cho các loại câu hỏi này
-                        questionView.Statistics = "Không áp dụng";
-                        break;
+                   
                 }
 
                 questionViewModels.Add(questionView);

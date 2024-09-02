@@ -60,7 +60,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
         <div id="courseActivityContainer"></div>
     </div>
@@ -72,16 +71,23 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
     <script>
         $(document).ready(function () {
             initializePage();
-            $('#viewButton').click(loadData);
+            loadInitialData();
+            $('#viewButton').click(function () {
+                loadData(null, false);  // Pass false to use date range
+            });
+            $('#courseSelect').change(onCourseChange);
         });
 
         function initializePage() {
             $('#courseSelect').select2();
+            initializeDatepickers();
+        }
+
+        function initializeDatepickers() {
             flatpickr(".flatpickr", {
                 dateFormat: "d/m/Y",
                 allowInput: true,
@@ -89,10 +95,36 @@
             });
         }
 
-        function loadData() {
-            var courseId = $('#courseSelect').val();
+        function loadInitialData() {
+            var initialCourseId = '@ViewBag.FirstCourseId';
+            if (initialCourseId) {
+                loadData(initialCourseId, true);
+            }
+        }
+
+        function onCourseChange() {
+            // Reset date inputs when course changes
+            $('#startDate').val('').trigger('change');
+            $('#endDate').val('').trigger('change');
+
+            // Reinitialize datepickers
+            initializeDatepickers();
+
+            // Load all data for the new course
+            loadData($('#courseSelect').val(), true);
+
+        }
+
+        function loadData(courseId, isAllData = false) {
+            courseId = courseId || $('#courseSelect').val();
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
+
+            // Only use null dates if isAllData is true
+            if (isAllData) {
+                startDate = null;
+                endDate = null;
+            }
 
             console.log("Loading data for course:", courseId, "from", startDate, "to", endDate);
 
@@ -117,7 +149,7 @@
                 }
             });
         }
-
+        
         function initializeDataTables() {
             $('#completedStudents').DataTable({
                 "paging": true,
@@ -145,26 +177,16 @@
                 }
             });
         }
-        $(document).ready(function () {
-            $('#logoutButton').click(function (e) {
-                e.preventDefault();
-                $.ajax({
-                    url: '@Url.Action("Logout", "Account")',
-                    type: 'POST',
-                    success: function (result) {
-                        if (result.success) {
-                            window.location.href = result.redirectUrl;
-                        } else {
-                            console.log('Logout failed');
-                        }
-                    },
-                    error: function (error) {
-                        console.log('Logout error:', error);
-                    }
-                });
-            });
-        });
 
-        
+        function setupExportButtons() {
+            // Implement export functionality here
+            // For example:
+            // $('#exportExcelBtn').click(function() {
+            //     // Code to export data to Excel
+            // });
+            // $('#exportPdfBtn').click(function() {
+            //     // Code to export data to PDF
+            // });
+        }
     </script>
 }

@@ -91,10 +91,7 @@
     <script type="text/javascript">
         $(function () {
             initializePage();
-        });
-
-        $(document).ready(function () {
-            initializeDataTables();
+            loadInitialData();
         });
 
         function initializePage() {
@@ -105,6 +102,21 @@
                 locale: "vn"
             });
             $('#viewButton').click(loadSurveyData);
+            $('#courseSelect, #surveyTypeSelect').change(onSelectionChange);
+        }
+
+        function loadInitialData() {
+            var courseId = $('#courseSelect').val();
+            var surveyType = $('#surveyTypeSelect').val();
+            loadSurveyData(courseId, surveyType);
+        }
+
+        function onSelectionChange() {
+            var courseId = $('#courseSelect').val();
+            var surveyType = $('#surveyTypeSelect').val();
+            $('#startDate').val('');
+            $('#endDate').val('');
+            loadSurveyData(courseId, surveyType);
         }
 
         function loadSurveyData() {
@@ -229,4 +241,5 @@
             });
         });
     </script>
+   
 }

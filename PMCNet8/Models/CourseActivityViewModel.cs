@@ -13,7 +13,7 @@ namespace PMCNet8.Models
             public string? CourseName { get; set; }
             public List<ChartDataViewModel> ChartData { get; set; }
             public List<CourseActivityViewModel> TableData { get; set; }
-            public DateTime StartDate { get;  set; }
-            public DateTime EndDate { get;  set; }
+            public DateTime? StartDate { get;  set; }
+            public DateTime? EndDate { get;  set; }
     }
     }

@@ -46,12 +46,19 @@ namespace PMCNet8.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetLessonStatistics(Guid lessonId, string startDate, string endDate)
+        public async Task<IActionResult> GetLessonStatistics(Guid lessonId, string startDate = null, string endDate = null)
         {
             try
             {
-                DateTime parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
-                DateTime parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                DateTime? parsedStartDate = null;
+                DateTime? parsedEndDate = null;
+
+                if (!string.IsNullOrEmpty(startDate) && !string.IsNullOrEmpty(endDate))
+                {
+                    parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture).AddDays(1).AddSeconds(-1);
+                }
+
                 if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
                 {
                     return BadRequest("Invalid SponsorId");
@@ -107,11 +114,13 @@ namespace PMCNet8.Controllers
 
         private async Task<ChartLessonViewModel> GetChartDataAsync(Guid lessonId, DateTime? parsedStartDate, DateTime? parsedEndDate)
         {
-            var query =  _logActionDbContext.LogLesson
-                .Where(ll => ll.TopicId == lessonId);
+            var query = _logActionDbContext.LogLesson
+             .Where(ll => ll.TopicId == lessonId);
 
-            if (parsedStartDate != null) query = query.Where(ll => ll.DateAccess.Date >= parsedStartDate);
-            if (parsedEndDate != null) query = query.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
+            if (parsedStartDate.HasValue)
+                query = query.Where(ll => ll.DateAccess.Date >= parsedStartDate.Value.Date);
+            if (parsedEndDate.HasValue)
+                query = query.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
 
             var lessonLogs = await query.ToListAsync();
             var listQuestions = await _mediHub4RumContext.MediHubSCQuiz
@@ -135,8 +144,10 @@ namespace PMCNet8.Controllers
         {
             var userQuery = _logActionDbContext.LogLesson.Where(ll => ll.TopicId == lessonId);
 
-            if (parsedStartDate != null) userQuery = userQuery.Where(ll => ll.DateAccess.Date >= parsedStartDate);
-            if (parsedEndDate != null) userQuery = userQuery.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
+            if (parsedStartDate.HasValue)
+                userQuery = userQuery.Where(ll => ll.DateAccess.Date >= parsedStartDate.Value.Date);
+            if (parsedEndDate.HasValue)
+                userQuery = userQuery.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
 
             var userLessons = await userQuery.Select(ll => new { ll.UserId, ll.Status, ll.Result, ll.DateAccess }).ToListAsync();
             var userIds = userLessons.Select(ul => ul.UserId).Distinct().ToList();

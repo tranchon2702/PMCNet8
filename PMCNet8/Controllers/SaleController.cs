@@ -22,7 +22,7 @@ public class SaleController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetSaleData(string startDate, string endDate)
+    public async Task<IActionResult> GetSaleData(string startDate = null, string endDate = null)
     {
         try
         {
@@ -31,8 +31,14 @@ public class SaleController : Controller
                 return BadRequest("Invalid SponsorId");
             }
 
-            DateTime parsedStartDate = string.IsNullOrEmpty(startDate) ? DateTime.Today.AddDays(-30) : DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
-            DateTime parsedEndDate = string.IsNullOrEmpty(endDate) ? DateTime.Today : DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+            DateTime? parsedStartDate = null;
+            DateTime? parsedEndDate = null;
+
+            if (!string.IsNullOrEmpty(startDate) && !string.IsNullOrEmpty(endDate))
+            {
+                parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+            }
 
             // Kiểm tra xem sponsor có sản phẩm nào không
             var hasProducts = await _mediHub4RumContext.SponsorProduct
@@ -57,7 +63,8 @@ public class SaleController : Controller
                         from code in codeGroup.DefaultIfEmpty()
                         join scan in _mediHub4RumContext.SponsorCampaignProductScan on code.Code equals scan.Code into scanGroup
                         from scan in scanGroup.DefaultIfEmpty()
-                        where scan == null || (scan.ScanDate.Date >= parsedStartDate.Date && scan.ScanDate.Date <= parsedEndDate.Date)
+                        where (parsedStartDate == null || parsedEndDate == null) ||
+                              (scan == null || (scan.ScanDate.Date >= parsedStartDate.Value.Date && scan.ScanDate.Date <= parsedEndDate.Value.Date))
                         group new { product, campaign, scan } by new { product.Id, product.Name, campaign.Point } into g
                         select new SponsorProductModel
                         {
@@ -97,11 +104,17 @@ public class SaleController : Controller
             return StatusCode(500, "An error occurred while processing your request");
         }
     }
+
     [HttpGet]
     public async Task<IActionResult> GetChartData(string endDate, string groupBy)
     {
         try
         {
+            if (string.IsNullOrEmpty(endDate))
+            {
+                return BadRequest("Vui lòng chọn thời gian đến ngày");
+            }
+
             if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
             {
                 return BadRequest("Invalid SponsorId");
@@ -111,6 +124,7 @@ public class SaleController : Controller
             {
                 return BadRequest("Invalid end date format");
             }
+
 
             DateTime startDate;
             var query = from product in _mediHub4RumContext.SponsorProduct

@@ -1,11 +1,16 @@
-﻿using Data.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using Data.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PMCNet8.Models;
-using System.Globalization;
-using System.Runtime.InteropServices;
 
-
+namespace PMCNet8.Controllers
+{
     public class CourseActivityController : Controller
     {
         private readonly LogActionDbContext _logActionDbContext;
@@ -13,24 +18,24 @@ using System.Runtime.InteropServices;
         private readonly MedihubSCAppDbContext _mediHubSCAppContext;
         private readonly ILogger<CourseActivityController> _logger;
         private readonly double passingRatio;
-    public CourseActivityController(LogActionDbContext logActionDbContext, Medihub4rumDbContext mediHub4RumContext, MedihubSCAppDbContext mediHubSCAppContext, ILogger<CourseActivityController> logger)
+
+        public CourseActivityController(LogActionDbContext logActionDbContext, Medihub4rumDbContext mediHub4RumContext, MedihubSCAppDbContext mediHubSCAppContext, ILogger<CourseActivityController> logger)
         {
             _logActionDbContext = logActionDbContext;
             _mediHub4RumContext = mediHub4RumContext;
             _mediHubSCAppContext = mediHubSCAppContext;
             _logger = logger;
-        var percentToPassString = _mediHubSCAppContext.Config
-        .Where(e => e.Id == "PercentToPassQuiz")
-        .Select(e => e.Value)
-        .FirstOrDefault();
 
-        if (!double.TryParse(percentToPassString, NumberStyles.Any, CultureInfo.InvariantCulture, out passingRatio))
-        {
-            // Nếu không parse được, sử dụng giá trị mặc định
-            passingRatio = 0.5;
+            var percentToPassString = _mediHubSCAppContext.Config
+                .Where(e => e.Id == "PercentToPassQuiz")
+                .Select(e => e.Value)
+                .FirstOrDefault();
+
+            if (!double.TryParse(percentToPassString, NumberStyles.Any, CultureInfo.InvariantCulture, out passingRatio))
+            {
+                passingRatio = 0.5; // Default value if parsing fails
+            }
         }
-
-    }
 
         public async Task<IActionResult> Index()
         {
@@ -40,52 +45,61 @@ using System.Runtime.InteropServices;
             }
 
             var courses = await GetCoursesAsync(sponsorId);
+
+            // Get the first course ID to load initial data
+            var firstCourseId = courses.FirstOrDefault()?.Id;
+
+            ViewBag.FirstCourseId = firstCourseId;
+
             return View(courses);
         }
 
-    [HttpGet]
-    public async Task<IActionResult> GetCourseActivity(Guid courseId, string startDate, string endDate)
-    {
-        try
+        [HttpGet]
+        public async Task<IActionResult> GetCourseActivity(Guid courseId, string startDate = null, string endDate = null)
         {
-            DateTime parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
-            DateTime parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
-
-            var courseName = await _mediHub4RumContext.Category
-                .Where(c => c.Id == courseId)
-                .Select(c => c.Name)
-                .FirstOrDefaultAsync();
-
-            var topics = await _mediHub4RumContext.Topic
-                .Where(t => t.Category_Id == courseId)
-                .Select(t => new TopicInfo { Id = t.Id, Name = t.Name })
-                .ToListAsync();
-
-            var chartData = await GetChartDataAsync(topics, parsedStartDate, parsedEndDate);
-            var tableData = await GetTableDataAsync(courseId, parsedStartDate, parsedEndDate);
-
-            var model = new CourseActivityViewModel
+            try
             {
-                CourseName = courseName,
-                ChartData = chartData,
-                TableData = tableData,
-                StartDate = parsedStartDate,
-                EndDate = parsedEndDate
-            };
+                DateTime? parsedStartDate = null;
+                DateTime? parsedEndDate = null;
 
+                if (!string.IsNullOrEmpty(startDate) && !string.IsNullOrEmpty(endDate))
+                {
+                    parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                }
 
-            _logger.LogInformation($"Returning PartialView with ChartData: {System.Text.Json.JsonSerializer.Serialize(chartData)}");
-            return PartialView("_CourseActivity", model);
+                var courseName = await _mediHub4RumContext.Category
+                    .Where(c => c.Id == courseId)
+                    .Select(c => c.Name)
+                    .FirstOrDefaultAsync();
+
+                var topics = await _mediHub4RumContext.Topic
+                    .Where(t => t.Category_Id == courseId)
+                    .Select(t => new TopicInfo { Id = t.Id, Name = t.Name })
+                    .ToListAsync();
+
+                var chartData = await GetChartDataAsync(topics, parsedStartDate, parsedEndDate);
+                var tableData = await GetTableDataAsync(courseId, parsedStartDate, parsedEndDate);
+
+                var model = new CourseActivityViewModel
+                {
+                    CourseName = courseName,
+                    ChartData = chartData,
+                    TableData = tableData,
+                    StartDate = parsedStartDate,
+                    EndDate = parsedEndDate
+                };
+
+                return PartialView("_CourseActivity", model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching course activity data");
+                return StatusCode(500, "An error occurred while processing your request");
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while fetching course activity data");
-            return StatusCode(500, "An error occurred while processing your request");
-        }
-    }
 
-
-    private async Task<List<CourseListItems>> GetCoursesAsync(Guid sponsorId)
+        private async Task<List<CourseListItems>> GetCoursesAsync(Guid sponsorId)
         {
             return await _mediHub4RumContext.SponsorHubCourse
                 .Where(shc => shc.SponsorId == sponsorId)
@@ -97,17 +111,19 @@ using System.Runtime.InteropServices;
                 .ToListAsync();
         }
 
-        private async Task<List<ChartDataViewModel>> GetChartDataAsync(List<TopicInfo> topics, DateTime parsedStartDate, DateTime parsedEndDate)
+        private async Task<List<ChartDataViewModel>> GetChartDataAsync(List<TopicInfo> topics, DateTime? startDate, DateTime? endDate)
         {
             var chartData = new List<ChartDataViewModel>();
             foreach (var topic in topics)
             {
-                var topicLogs = await _logActionDbContext.LogLesson
-                    .Where(ll => ll.TopicId == topic.Id &&
-                                 ll.DateAccess.Date >= parsedStartDate.Date 
-                                 && ll.DateAccess.Date <= parsedEndDate.Date)
-                    .ToListAsync();
+                var query = _logActionDbContext.LogLesson.Where(ll => ll.TopicId == topic.Id);
 
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    query = query.Where(ll => ll.DateAccess.Date >= startDate.Value.Date && ll.DateAccess.Date <= endDate.Value.Date);
+                }
+
+                var topicLogs = await query.ToListAsync();
 
                 chartData.Add(new ChartDataViewModel
                 {
@@ -119,45 +135,19 @@ using System.Runtime.InteropServices;
             }
             return chartData;
         }
-    private bool IsPassingScore(string result)
-    {
-        if (string.IsNullOrEmpty(result))
-        {
-            return false;
-        }
 
-        string[] parts = result.Split('/');
-        if (parts.Length != 2)
+        private async Task<List<CourseActivityViewModel>> GetTableDataAsync(Guid courseId, DateTime? startDate, DateTime? endDate)
         {
-            return false;
-        }
+            var query = _mediHub4RumContext.SponsorHubCourseFinish
+                .Where(e => e.CategoryId == courseId);
 
-        if (!double.TryParse(parts[0], out double numerator) || !double.TryParse(parts[1], out double denominator))
-        {
-            return false;
-        }
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                query = query.Where(e => e.FinishDate.Date >= startDate.Value.Date && e.FinishDate.Date <= endDate.Value.Date);
+            }
 
-        if (denominator == 0)
-        {
-            return false;
-        }
+            var userCompletions = await query.Select(e => e.UserId).ToListAsync();
 
-        return numerator / denominator >= passingRatio;
-    }
-    private async Task<List<CourseActivityViewModel>> GetTableDataAsync(Guid courseId, DateTime parsedStartDate, DateTime parsedEndDate)
-        {
-            var topicIds = await _mediHub4RumContext.Topic
-                .Where(t => t.Category_Id == courseId)
-                .Select(t => t.Id)
-                .ToListAsync();
-
-            var topicCount = topicIds.Count;
-           
-            var userCompletions = await _mediHub4RumContext.SponsorHubCourseFinish
-                .Where( e => e.CategoryId == courseId && e.FinishDate.Date >= parsedStartDate.Date && e.FinishDate.Date <= parsedEndDate.Date)
-                .Select(e => e.UserId)
-                .ToListAsync();
-           
             var users = await _mediHub4RumContext.MembershipUser
                 .Where(mu => userCompletions.Contains(mu.Id))
                 .ToListAsync();
@@ -165,6 +155,10 @@ using System.Runtime.InteropServices;
             var appSetups = await _mediHubSCAppContext.AppSetup
                 .Where(app => users.Select(u => u.KeyCodeActive).Contains(app.KeyCodeActive))
                 .ToListAsync();
+
+            var topicCount = await _mediHub4RumContext.Topic
+                .Where(t => t.Category_Id == courseId)
+                .CountAsync();
 
             return users.Select(user =>
             {
@@ -180,4 +174,31 @@ using System.Runtime.InteropServices;
                 };
             }).ToList();
         }
+
+        private bool IsPassingScore(string result)
+        {
+            if (string.IsNullOrEmpty(result))
+            {
+                return false;
+            }
+
+            string[] parts = result.Split('/');
+            if (parts.Length != 2)
+            {
+                return false;
+            }
+
+            if (!double.TryParse(parts[0], out double numerator) || !double.TryParse(parts[1], out double denominator))
+            {
+                return false;
+            }
+
+            if (denominator == 0)
+            {
+                return false;
+            }
+
+            return numerator / denominator >= passingRatio;
+        }
     }
+}

@@ -82,27 +82,8 @@
 
         $(document).ready(function () {
             initializePage();
-            $('#viewButton').click(loadData);
-        });
-
-        $(document).ready(function () {
-            $('#logoutButton').click(function (e) {
-                e.preventDefault();
-                $.ajax({
-                    url: '@Url.Action("Logout", "Account")',
-                    type: 'POST',
-                    success: function (result) {
-                        if (result.success) {
-                            window.location.href = result.redirectUrl;
-                        } else {
-                            console.log('Logout failed');
-                        }
-                    },
-                    error: function (error) {
-                        console.log('Logout error:', error);
-                    }
-                });
-            });
+            loadInitialData();
+            setupEventHandlers();
         });
 
         function initializePage() {
@@ -113,19 +94,53 @@
                 locale: "vn"
             });
 
-            $('#lessonSelect').change(function () {
-                var selectedOption = $(this).find('option:selected');
-                var courseName = selectedOption.data('course');
-                $('#courseName').text(courseName);
+            updateCourseName();
+        }
+
+        function updateCourseName() {
+            var selectedOption = $('#lessonSelect option:selected');
+            var courseName = selectedOption.data('course');
+            $('#courseName').text(courseName);
+        }
+
+        function setupEventHandlers() {
+            $('#viewButton').click(loadDataWithDates);
+            $('#lessonSelect').change(onLessonChange);
+            $('#logoutButton').click(handleLogout);
+        }
+
+        function loadInitialData() {
+            var lessonId = $('#lessonSelect').val();
+            loadData(lessonId);
+        }
+
+        function onLessonChange() {
+            var lessonId = $('#lessonSelect').val();
+            $('#startDate').val('');
+            $('#endDate').val('');
+            updateCourseName();
+            loadData(lessonId);
+        }
+
+        function loadData(lessonId) {
+            $.ajax({
+                url: '@Url.Action("GetLessonStatistics", "LessonStatistics")',
+                type: 'GET',
+                data: { lessonId: lessonId },
+                success: handleDataLoadSuccess,
+                error: handleDataLoadError
             });
         }
 
-        function loadData() {
+        function loadDataWithDates() {
             var lessonId = $('#lessonSelect').val();
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
 
-            console.log("Loading data for lesson:", lessonId, "from", startDate, "to", endDate);
+            if (!startDate || !endDate) {
+                alert('Vui lòng chọn cả ngày bắt đầu và ngày kết thúc.');
+                return;
+            }
 
             $.ajax({
                 url: '@Url.Action("GetLessonStatistics", "LessonStatistics")',
@@ -135,22 +150,25 @@
                     startDate: startDate,
                     endDate: endDate
                 },
-                success: function (result) {
-                    console.log("Received data from server");
-                    $('#lessonStatisticsContainer').html(result);
-                    console.log("Partial view loaded");
-
-                    // Đợi một chút để đảm bảo DOM đã được cập nhật
-                    setTimeout(function () {
-                        initializeOrUpdateDataTable();
-                        setupExportButtons();
-                    }, 100);
-                },
-                error: function (error) {
-                    console.error("Error loading data:", error);
-                    alert('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.');
-                }
+                success: handleDataLoadSuccess,
+                error: handleDataLoadError
             });
+        }
+
+        function handleDataLoadSuccess(result) {
+            console.log("Received data from server");
+            $('#lessonStatisticsContainer').html(result);
+            console.log("Partial view loaded");
+
+            setTimeout(function () {
+                initializeOrUpdateDataTable();
+                setupExportButtons();
+            }, 100);
+        }
+
+        function handleDataLoadError(error) {
+            console.error("Error loading data:", error);
+            alert('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.');
         }
 
         function initializeOrUpdateDataTable() {
@@ -189,6 +207,33 @@
             console.log("DataTable initialization or update complete");
         }
 
-        
+        function setupExportButtons() {
+            // Implement export functionality here
+            // For example:
+            // $('#exportExcelBtn').click(function() {
+            //     // Code to export data to Excel
+            // });
+            // $('#exportPdfBtn').click(function() {
+            //     // Code to export data to PDF
+            // });
+        }
+
+        function handleLogout(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '@Url.Action("Logout", "Account")',
+                type: 'POST',
+                success: function (result) {
+                    if (result.success) {
+                        window.location.href = result.redirectUrl;
+                    } else {
+                        console.log('Logout failed');
+                    }
+                },
+                error: function (error) {
+                    console.log('Logout error:', error);
+                }
+            });
+        }
     </script>
 }
