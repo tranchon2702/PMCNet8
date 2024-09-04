@@ -17,48 +17,31 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-body">
-                <div class="row align-items-end">
-                    <div class="col-md-4">
+                <div class="row">
+                    <div class="col-12">
                         <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">Bài học</span>
-                            </div>
+                            <span class="input-group-text">Bài học</span>
                             <select id="lessonSelect" class="form-control">
                                 @foreach (var lesson in Model)
                                 {
                                     <option value="@lesson.Id" data-course="@lesson.CourseName">@lesson.Name</option>
                                 }
                             </select>
+
+                            <span class="input-group-text">Từ ngày</span>
+                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
+                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+
+                            <span class="input-group-text">Đến ngày</span>
+                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
+                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+
+                            <button id="viewButton" class="btn btn-primary">Xem</button>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">Từ ngày</span>
-                            </div>
-                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">Đến ngày</span>
-                            </div>
-                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
-                            <div class="input-group-append">
-                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <button id="viewButton" class="btn btn-primary btn-block">Xem</button>
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-md-12">
+                    <div class="col-12">
                         <p class="mb-0"><strong>Khóa học: </strong><span id="courseName"></span></p>
                     </div>
                 </div>

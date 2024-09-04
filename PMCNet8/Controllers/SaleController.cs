@@ -20,7 +20,29 @@ public class SaleController : Controller
     {
         return View();
     }
+    [HttpGet]
+    public async Task<IActionResult> GetProducts()
+    {
+        try
+        {
+            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            {
+                return BadRequest("Invalid SponsorId");
+            }
 
+            var products = await _mediHub4RumContext.SponsorProduct
+                .Where(sp => sp.SponsorId == sponsorId)
+                .Select(sp => new { sp.Id, sp.Name })
+                .ToListAsync();
+
+            return Json(new { products });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while fetching products");
+            return StatusCode(500, "An error occurred while processing your request");
+        }
+    }
     [HttpGet]
     public async Task<IActionResult> GetSaleData(string startDate = null, string endDate = null)
     {
@@ -106,7 +128,7 @@ public class SaleController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetChartData(string endDate, string groupBy)
+    public async Task<IActionResult> GetChartData(string endDate, string groupBy, Guid? productId = null)
     {
         try
         {
@@ -125,25 +147,32 @@ public class SaleController : Controller
                 return BadRequest("Invalid end date format");
             }
 
-
-            DateTime startDate;
             var query = from product in _mediHub4RumContext.SponsorProduct
                         join campaign in _mediHub4RumContext.SponsorCampaign on product.Id equals campaign.ProductId
                         join code in _mediHub4RumContext.SponsorCampaignProductCode on campaign.Id equals code.CampaignId
                         join scan in _mediHub4RumContext.SponsorCampaignProductScan on code.Code equals scan.Code
                         where product.SponsorId == sponsorId
-                        select new { scan.ScanDate, Points = campaign.Point };
+                        select new { product.Id, product.Name, scan.ScanDate, Points = campaign.Point };
+
+            if (productId.HasValue)
+            {
+                query = query.Where(q => q.Id == productId.Value);
+            }
 
             var result = await query.ToListAsync();
 
+            if (!result.Any())
+            {
+                return Json(new { chartData = new List<object>(), productName = "Không có dữ liệu" });
+            }
+
             List<object> chartData;
+            DateTime startDate;
 
             switch (groupBy)
             {
                 case "day":
-                    startDate = parsedEndDate.AddDays(-(int)parsedEndDate.DayOfWeek + 1);
-                    if (startDate > parsedEndDate) startDate = startDate.AddDays(-7);
-
+                    startDate = parsedEndDate.AddDays(-6);
                     chartData = Enumerable.Range(0, 7)
                         .Select(offset => startDate.AddDays(offset))
                         .Select(date => new
@@ -157,22 +186,17 @@ public class SaleController : Controller
                     break;
 
                 case "week":
-                    var firstDayOfMonth = new DateTime(parsedEndDate.Year, parsedEndDate.Month, 1);
-                    var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
-                    startDate = firstDayOfMonth;
-
-                    chartData = new List<object>();
-                    while (startDate <= lastDayOfMonth)
-                    {
-                        var weekEnd = startDate.AddDays(6) > lastDayOfMonth ? lastDayOfMonth : startDate.AddDays(6);
-                        chartData.Add(new
+                    startDate = parsedEndDate.AddDays(-(int)parsedEndDate.DayOfWeek + 1).AddDays(-21);
+                    chartData = Enumerable.Range(0, 4)
+                        .Select(weekOffset => startDate.AddDays(weekOffset * 7))
+                        .Select(weekStart => new
                         {
-                            Label = $"Tuần {CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(startDate, CalendarWeekRule.FirstDay, DayOfWeek.Monday)}",
-                            Count = result.Count(r => r.ScanDate.Date >= startDate && r.ScanDate.Date <= weekEnd),
-                            Points = result.Where(r => r.ScanDate.Date >= startDate && r.ScanDate.Date <= weekEnd).Sum(r => r.Points)
-                        });
-                        startDate = startDate.AddDays(7);
-                    }
+                            Label = $"Tuần {CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(weekStart, CalendarWeekRule.FirstDay, DayOfWeek.Monday)}",
+                            Count = result.Count(r => r.ScanDate.Date >= weekStart && r.ScanDate.Date < weekStart.AddDays(7)),
+                            Points = result.Where(r => r.ScanDate.Date >= weekStart && r.ScanDate.Date < weekStart.AddDays(7)).Sum(r => r.Points)
+                        })
+                        .Cast<object>()
+                        .ToList();
                     break;
 
                 case "month":
@@ -193,7 +217,11 @@ public class SaleController : Controller
                     return BadRequest("Invalid groupBy parameter");
             }
 
-            return Json(chartData);
+            string productName = productId.HasValue
+                ? result.FirstOrDefault()?.Name ?? "Sản phẩm không xác định"
+                : "Tất cả sản phẩm";
+
+            return Json(new { chartData, productName });
         }
         catch (Exception ex)
         {
@@ -201,7 +229,5 @@ public class SaleController : Controller
             return StatusCode(500, "An error occurred while processing your request");
         }
     }
-
 }
-
 

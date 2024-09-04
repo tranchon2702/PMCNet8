@@ -15,25 +15,25 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-body">
-                <div class="row align-items-end">
-                    <div class="col-md-4">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">Từ ngày</span>
+                <div class="form-group">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Từ ngày</span>
+                                </div>
+                                <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
+
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Đến ngày</span>
+                                </div>
+                                <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
+
+                                <div class="input-group-append">
+                                    <button id="viewButton" class="btn btn-primary">Xem</button>
+                                </div>
                             </div>
-                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">Đến ngày</span>
-                            </div>
-                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <button id="viewButton" class="btn btn-primary btn-block">Xem</button>
                     </div>
                 </div>
             </div>
@@ -48,10 +48,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let saleChart;
+        let selectedProductId;
+        let selectedProductName;
 
         $(document).ready(function () {
             initializeDatePickers();
             setupEventHandlers();
+            setDefaultEndDate();
             loadInitialData();
         });
 
@@ -63,25 +66,15 @@
             });
         }
 
-        $(document).ready(function () {
-            $('#logoutButton').click(function (e) {
-                e.preventDefault();
-                $.ajax({
-                    url: '@Url.Action("Logout", "Account")',
-                    type: 'POST',
-                    success: function (result) {
-                        if (result.success) {
-                            window.location.href = result.redirectUrl;
-                        } else {
-                            console.log('Logout failed');
-                        }
-                    },
-                    error: function (error) {
-                        console.log('Logout error:', error);
-                    }
-                });
-            });
-        });
+        function setDefaultEndDate() {
+            var today = new Date();
+            var dd = String(today.getDate()).padStart(2, '0');
+            var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+            var yyyy = today.getFullYear();
+
+            today = dd + '/' + mm + '/' + yyyy;
+            $('#endDate').val(today);
+        }
 
         function setupEventHandlers() {
             $('#viewButton').click(function () {
@@ -93,13 +86,27 @@
             $(document).on('click', '.btn-group .btn', function () {
                 $('.btn-group .btn').removeClass('active');
                 $(this).addClass('active');
-                var groupBy = $(this).data('group-by');
-                loadChartData(groupBy);
+                if (selectedProductId) {
+                    loadChartData();
+                }
+            });
+
+            $(document).on('click', '#productTable tbody tr:not(:last-child)', function () {
+                selectedProductId = $(this).data('product-id');
+                selectedProductName = $(this).data('product-name');
+                loadChartData();
+            });
+
+            $('#endDate').change(function () {
+                if (selectedProductId) {
+                    loadChartData();
+                }
             });
         }
 
         function loadInitialData() {
-            loadSaleData();
+            var endDate = $('#endDate').val();
+            loadSaleData(null, endDate);
         }
 
         function loadSaleData(startDate = null, endDate = null) {
@@ -109,6 +116,13 @@
                 type: 'GET',
                 success: function (result) {
                     $('#saleDataContainer').html(result);
+                    // Automatically select the first product and load its chart
+                    var firstProduct = $('#productTable tbody tr:first');
+                    if (firstProduct.length > 0) {
+                        selectedProductId = firstProduct.data('product-id');
+                        selectedProductName = firstProduct.data('product-name');
+                        loadChartData();
+                    }
                 },
                 error: function (error) {
                     console.log('Error:', error);
@@ -117,10 +131,12 @@
             });
         }
 
-        function loadChartData(groupBy) {
+        function loadChartData() {
             var endDate = $('#endDate').val();
-            if (!endDate) {
-                alert('Vui lòng chọn thời gian đến ngày');
+            var groupBy = $('.btn-group .btn.active').data('group-by');
+
+            if (!selectedProductId) {
+                console.log('Không có sản phẩm nào được chọn');
                 return;
             }
 
@@ -128,10 +144,11 @@
                 url: '@Url.Action("GetChartData", "Sale")',
                 data: {
                     endDate: endDate,
-                    groupBy: groupBy
+                    groupBy: groupBy,
+                    productId: selectedProductId
                 },
                 success: function (data) {
-                    updateChart(data, groupBy);
+                    updateChart(data.chartData, groupBy, selectedProductName);
                 },
                 error: function (error) {
                     console.error('Error loading chart data:', error);
@@ -144,12 +161,16 @@
             });
         }
 
-
-        function updateChart(data, groupBy) {
+        function updateChart(data, groupBy, productName) {
             const ctx = document.getElementById('saleChart').getContext('2d');
 
             if (saleChart) {
                 saleChart.destroy();
+            }
+
+            if (data.length === 0) {
+                displayNoDataMessage(ctx);
+                return;
             }
 
             saleChart = new Chart(ctx, {
@@ -195,7 +216,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Biểu đồ bán hàng theo ' + (groupBy === 'day' ? 'ngày' : groupBy === 'week' ? 'tuần' : 'tháng')
+                            text: `Biểu đồ bán hàng theo ${groupBy === 'day' ? 'ngày' : groupBy === 'week' ? 'tuần' : 'tháng'} - ${productName}`
                         },
                         tooltip: {
                             mode: 'index',
@@ -208,5 +229,14 @@
                 }
             });
         }
+         
+        function displayNoDataMessage(ctx) {
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#000';
+            ctx.fillText('Không có dữ liệu để hiển thị', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        }
+
     </script>
+}
 }

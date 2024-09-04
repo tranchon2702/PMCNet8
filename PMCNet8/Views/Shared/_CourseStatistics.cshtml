@@ -30,29 +30,32 @@
 </div>
 
 <!-- Charts -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Tình hình cấp phát và sử dụng mã khóa học</h3>
-            </div>
-            <div class="card-body">
-                <p><strong>Tổng mã cấp phát: </strong><span>@Model.CourseInfo.TotalKeys</span></p>
-                <div id="pie-chart" style="height: 450px;"></div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #FF6384;"></span>
-                        <span><strong>Đã sử dụng: </strong><span>@Model.CourseInfo.UsedKeys</span></span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: #36A2EB;"></span>
-                        <span><strong>Chưa sử dụng: </strong><span>@Model.CourseInfo.UnusedKeys</span></span>
+@if (Model.CourseInfo.Type == 0)
+{
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Tình hình cấp phát và sử dụng mã khóa học</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Tổng mã cấp phát: </strong><span>@Model.CourseInfo.TotalKeys</span></p>
+                    <div id="pie-chart" style="height: 450px;"></div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #FF6384;"></span>
+                            <span><strong>Đã sử dụng: </strong><span>@Model.CourseInfo.UsedKeys</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #36A2EB;"></span>
+                            <span><strong>Chưa sử dụng: </strong><span>@Model.CourseInfo.UnusedKeys</span></span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 <!-- LineCharts -->
 <div class="row">
@@ -103,7 +106,8 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-dark text-white">
-                <h3 class="card-title">Danh sách các Dược sĩ chưa học bài học</h3>
+                <h3 style="color:white" class="card-title">Danh sách các Dược sĩ đã học bài học</h3>
+                <button style="height:28px" id="exportCompletedButton" class="btn btn-success float-right btn-xs"><i class="fas fa-file-excel"></i>  Xuất file Excel</button>
             </div>
             <div class="card-body">
                 <table id="pharmacistTable" class="table table-bordered table-hover">
@@ -129,7 +133,6 @@
                         }
                     </tbody>
                 </table>
-                <button id="exportCompletedButton" class="btn btn-success float-right mt-3"><i class="fas fa-file-excel"></i>  Xuất file Excel</button>
             </div>
         </div>
     </div>

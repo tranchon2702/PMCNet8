@@ -52,7 +52,7 @@
             <h3 class="card-title">Chi tiết sản phẩm</h3>
         </div>
         <div class="card-body">
-            <table class="table table-bordered table-striped">
+            <table class="table table-bordered table-striped" id="productTable">
                 <thead>
                     <tr>
                         <th style="text-align:center">STT</th>
@@ -65,7 +65,7 @@
                     @for (int i = 0; i < Model.SponsorProducts.Count; i++)
                     {
                         var product = Model.SponsorProducts[i];
-                        <tr>
+                        <tr data-product-id="@product.ProductId" data-product-name="@product.ProductName">
                             <td style="text-align:center">@(i + 1)</td>
                             <td>@product.ProductName</td>
                             <td style="text-align:center">@product.TotalScans</td>
@@ -87,9 +87,9 @@
         </div>
         <div class="card-body">
             <div class="btn-group mb-3" role="group">
-                <button type="button" class="btn btn-secondary active" data-group-by="day">Ngày</button>
+                <button type="button" class="btn btn-secondary" data-group-by="day">Ngày</button>
                 <button type="button" class="btn btn-secondary" data-group-by="week">Tuần</button>
-                <button type="button" class="btn btn-secondary" data-group-by="month">Tháng</button>
+                <button type="button" class="btn btn-secondary active" data-group-by="month">Tháng</button>
             </div>
 
             <canvas id="saleChart"></canvas>

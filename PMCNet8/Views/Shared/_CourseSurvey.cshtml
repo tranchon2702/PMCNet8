@@ -18,7 +18,6 @@
                     @if (i != 0 && i != Model.Questions.Count - 1)
                     {
                         <span>@question.Order</span>
-
                         <span>.</span>
                     }
                     @question.QuestionTitle
@@ -28,60 +27,48 @@
                 @switch (question.Type.ToLower())
                 {
                     case "star":
-                        <div class="rating-bars">
-                            @{
-                                var maxStars = 5;
-                                var statistics = question.Statistics.Split(", ");
-                                var percentages = new Dictionary<int, double>();
-
-                                foreach (var stat in statistics)
-                                {
-                                    var parts = stat.Split(": ");
-                                    var stars = int.Parse(parts[0].Split(' ')[0]);
-                                    var percentage = double.Parse(parts[1].TrimEnd('%'));
-                                    percentages[stars] = percentage;
-                                }
-
-                                for (int j = maxStars; j >= 1; j--)
-                                {
-                                    var percentage = percentages.ContainsKey(j) ? percentages[j] : 0;
-                                    <div class="rating-bar">
-                                        <div class="stars" title="@j sao">
-                                            @for (int star = 0; star < j; star++)
-                                            {
-                                                <i class="fas fa-star"></i>
-                                            }
-                                            @for (int emptyStar = 0; emptyStar < (maxStars - j); emptyStar++)
-                                            {
-                                                <i class="far fa-star"></i>
-                                            }
-                                        </div>
-                                        <div class="progress">
-                                            <div class="progress-bar bg-success" role="progressbar"
-                                                 style="width: @percentage%"
-                                                 aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100">
-                                            </div>
-                                        </div>
-                                        <div class="percent">@percentage.ToString("F1")%</div>
+                        <div class="rating-bars" data-question-type="star" data-statistics="@question.Statistics">
+                            @for (int j = 5; j >= 1; j--)
+                            {
+                                var percentage = question.OptionPercentages.ContainsKey($"{j} sao") ? question.OptionPercentages[$"{j} sao"] : 0;
+                                <div class="rating-bar">
+                                    <div class="stars" title="@j sao">
+                                        @for (int star = 0; star < j; star++)
+                                        {
+                                            <i class="fas fa-star"></i>
+                                        }
+                                        @for (int emptyStar = 0; emptyStar < (5 - j); emptyStar++)
+                                        {
+                                            <i class="far fa-star"></i>
+                                        }
                                     </div>
-                                }
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: @percentage%"
+                                             aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <div class="percent">@percentage.ToString("F1")%</div>
+                                </div>
                             }
                         </div>
                         break;
                     case "radio":
                     case "checkbox":
+                    case "checkboxinput":
+                    case "radioinput":
                         <div class="chart-container" style="position: relative; height:40vh; width:80vw">
                             <canvas class="chart-canvas"
+                                    data-question-id="@question.QuestionId"
                                     data-question-type="@question.Type"
                                     data-options="@Json.Serialize(question.Options)"
-                                    data-percentages="@Json.Serialize(question.OptionPercentages)">
+                                    data-option-counts="@Json.Serialize(question.OptionCounts)"
+                                    data-option-percentages="@Json.Serialize(question.OptionPercentages)">
                             </canvas>
                         </div>
                         break;
                     case "text":
                     case "input":
-                    case "radioinput":
-                    case "checkboxinput":
                         <table class="table table-bordered table-striped survey-data-table">
                             <thead>
                                 <tr>
@@ -91,7 +78,16 @@
                             <tbody>
                                 @foreach (var response in question.Responses)
                                 {
-                                    <tr><td>@response.Value</td></tr>
+                                    <tr>
+                                        <td>
+                                            @{
+                                                var cleanedValue = response.Value.Trim('[', ']', '"');
+                                                cleanedValue = cleanedValue.Replace("\",\"", ", ");
+                                                cleanedValue = cleanedValue.Replace("\\n", " ");
+                                                @Html.Raw(cleanedValue)
+                                            }
+                                        </td>
+                                    </tr>
                                 }
                             </tbody>
                         </table>

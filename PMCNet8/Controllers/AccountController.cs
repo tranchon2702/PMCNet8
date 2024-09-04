@@ -50,6 +50,11 @@ public class AccountController : Controller
                         HttpContext.Session.SetString("UserId", user.Id.ToString());
                         HttpContext.Session.SetString("SponsorId", sponsor.Id.ToString());
                         HttpContext.Session.SetString("SponsorName", sponsor.Name);
+
+                        // Kiểm tra xem Sponsor có Hub hay không
+                        var hasHub = await _context.SponsorHub.AnyAsync(sh => sh.SponsorId == sponsor.Id);
+                        HttpContext.Session.SetString("HasHub", hasHub.ToString());
+
                         return RedirectToAction("Index", "Home");
                     }
                     else
@@ -73,7 +78,6 @@ public class AccountController : Controller
             _logger.LogError(ex, "Lỗi xảy ra trong quá trình đăng nhập");
             ModelState.AddModelError("", "Đã xảy ra lỗi trong quá trình đăng nhập. Vui lòng thử lại sau.");
         }
-
         return View();
     }
 

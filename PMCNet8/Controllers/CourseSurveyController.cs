@@ -182,6 +182,7 @@ namespace PMCNet8.Controllers
 
         private async Task<List<QuestionViewModel>> GetQuestionViewModels(long surveyId, DateTime parsedStartDate, DateTime parsedEndDate)
         {
+
             var questions = await _mediHubSCAppContext.PharmacomSurveyDetail
                 .Where(q => q.PharmacomSurveyId == surveyId)
                 .OrderBy(q => q.Order)
@@ -217,14 +218,19 @@ namespace PMCNet8.Controllers
                     Responses = responses,
                     Order = question.Order
                 };
-
+                questionView.OptionPercentages = new Dictionary<string, double>();
                 switch (question.Type.ToLower())
                 {
+
                     case "star":
-                        questionView.Statistics = CalculateStarStatistics(options, responses);
+                        var (starStatistics, starPercentages) = CalculateStarStatistics(options, responses);
+                        questionView.Statistics = starStatistics;
+                        questionView.OptionPercentages = starPercentages;
                         break;
                     case "radio":
                     case "checkbox":
+                    case "radioinput":
+                    case "checkboxinput":
                         var (optionCounts, optionPercentages) = CalculateOptionStatistics(options, responses, question.Type);
                         questionView.OptionCounts = optionCounts;
                         questionView.OptionPercentages = optionPercentages;
@@ -257,9 +263,9 @@ namespace PMCNet8.Controllers
             }
         }
 
-        private string CalculateStarStatistics(List<OptionViewModel> options, List<ResponseViewModel> responses)
+        private (string Statistics, Dictionary<string, double> OptionPercentages) CalculateStarStatistics(List<OptionViewModel> options, List<ResponseViewModel> responses)
         {
-            if (responses.Count == 0) return "Không có dữ liệu";
+            if (responses.Count == 0) return ("Không có dữ liệu", new Dictionary<string, double>());
 
             var maxStars = options.Count;
             var starCounts = new int[maxStars];
@@ -274,13 +280,15 @@ namespace PMCNet8.Controllers
             }
 
             var statistics = new List<string>();
+            var optionPercentages = new Dictionary<string, double>();
             for (int i = 0; i < maxStars; i++)
             {
                 var percentage = (starCounts[i] * 100.0) / totalResponses;
                 statistics.Add($"{i + 1} sao: {percentage:F1}%");
+                optionPercentages[$"{i + 1} sao"] = percentage;
             }
 
-            return string.Join(", ", statistics);
+            return (string.Join(", ", statistics), optionPercentages);
         }
 
         private (Dictionary<string, int>, Dictionary<string, double>) CalculateOptionStatistics(List<OptionViewModel> options, List<ResponseViewModel> responses, string questionType)
@@ -290,15 +298,37 @@ namespace PMCNet8.Controllers
 
             foreach (var response in responses)
             {
-                var selectedOptions = questionType.ToLower() == "checkbox"
-                    ? JsonConvert.DeserializeObject<List<string>>(response.Value ?? "[]")
-                    : new List<string> { response.Value };
+                List<string> selectedOptions;
+
+                switch (questionType.ToLower())
+                {
+                    case "checkbox":
+                    case "checkboxinput":
+                        selectedOptions = JsonConvert.DeserializeObject<List<string>>(response.Value ?? "[]");
+                        break;
+                    case "radio":
+                    case "radioinput":
+                        selectedOptions = new List<string> { response.Value };
+                        break;
+                    default:
+                        selectedOptions = new List<string>();
+                        break;
+                }
 
                 foreach (var selectedOption in selectedOptions)
                 {
                     if (optionCounts.ContainsKey(selectedOption))
                     {
                         optionCounts[selectedOption]++;
+                    }
+                    else if (questionType.ToLower().EndsWith("input"))
+                    {
+                        // Xử lý trường hợp "Khác" cho checkboxinput và radioinput
+                        var otherOption = options.FirstOrDefault(o => o.Content.StartsWith("Khác"));
+                        if (otherOption != null)
+                        {
+                            optionCounts[otherOption.Content]++;
+                        }
                     }
                 }
             }

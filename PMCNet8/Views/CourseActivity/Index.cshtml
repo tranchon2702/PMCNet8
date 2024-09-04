@@ -18,8 +18,8 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-body">
-                <div class="row align-items-end">
-                    <div class="col-md-4">
+                <div class="row">
+                    <div class="col-12">
                         <div class="input-group">
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Khóa học</span>
@@ -30,37 +30,32 @@
                                     <option value="@course.Id">@course.Name</option>
                                 }
                             </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
+
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Từ ngày</span>
                             </div>
-                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
                             <div class="input-group-append">
                                 <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
                             </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
+
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Đến ngày</span>
                             </div>
-                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
                             <div class="input-group-append">
                                 <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
                             </div>
+
+                            <div class="input-group-append">
+                                <button id="viewButton" class="btn btn-primary">Xem</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-2">
-                        <button id="viewButton" class="btn btn-primary btn-block">Xem</button>
                     </div>
                 </div>
             </div>
         </div>
-
+    </div>
         <div id="courseActivityContainer"></div>
     </div>
 </section>
@@ -71,6 +66,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
     <script>
         $(document).ready(function () {

@@ -16,8 +16,8 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-body">
-                <div class="row align-items-end">
-                    <div class="col-md-4">
+                <div class="row">
+                    <div class="col-12">
                         <div class="input-group">
                             <div class="input-group-prepend">
                                 <label class="input-group-text" for="courseSelect">Chọn khóa học</label>
@@ -36,14 +36,8 @@
                                 <select id="courseSelect" class="custom-select is-invalid" disabled>
                                     <option>Không có khóa học</option>
                                 </select>
-                                <div class="invalid-feedback" style="position: absolute; top: 100%; left: 0; width: 100%;">
-                                    @(ViewBag.ErrorMessage ?? "Không có khóa học nào được tìm thấy.")
-                                </div>
                             }
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="input-group">
+
                             <div class="input-group-prepend">
                                 <label class="input-group-text" for="surveyTypeSelect">Loại khảo sát</label>
                             </div>
@@ -51,26 +45,27 @@
                                 <option value="0">Trước khóa học</option>
                                 <option value="1">Sau khóa học</option>
                             </select>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="input-group">
+
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Từ ngày</span>
                             </div>
-                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="input-group">
+                            <input type="text" id="startDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
+
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Đến ngày</span>
                             </div>
-                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy">
+                            <input type="text" id="endDate" class="form-control flatpickr" placeholder="dd/mm/yyyy" autocomplete="off">
+
+                            <div class="input-group-append">
+                                <button id="viewButton" class="btn btn-primary">Xem</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-2">
-                        <button id="viewButton" class="btn btn-primary btn-block">Xem</button>
+                        @if (ViewBag.Courses == null || ((List<SelectListItem>)ViewBag.Courses).Count == 0)
+                        {
+                            <div class="invalid-feedback d-block mt-2">
+                                @(ViewBag.ErrorMessage ?? "Không có khóa học nào được tìm thấy.")
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -145,18 +140,29 @@
                 }
             });
         }
-
         function initializeCharts() {
             $('.chart-canvas').each(function () {
                 var ctx = this.getContext('2d');
+                var questionId = $(this).data('question-id');
                 var questionType = $(this).data('question-type');
                 var options = $(this).data('options');
-                var percentages = $(this).data('percentages');
+                var optionCounts = $(this).data('option-counts');
+                var optionPercentages = $(this).data('option-percentages');
 
                 var labels = options.map(function (option) { return option.content; });
-                var data = labels.map(function (label) { return percentages[label] || 0; });
+                var data = labels.map(function (label) { return optionPercentages[label] || 0; });
 
-                var chartType = questionType.toLowerCase() === 'checkbox' ? 'bar' : 'pie';
+                var chartType = (questionType.toLowerCase() === 'checkbox' || questionType.toLowerCase() === 'checkboxinput') ? 'bar' : 'pie';
+
+                var chartColors = [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)',
+                    'rgba(201, 203, 207, 0.8)'
+                ];
 
                 new Chart(ctx, {
                     type: chartType,
@@ -164,13 +170,7 @@
                         labels: labels,
                         datasets: [{
                             data: data,
-                            backgroundColor: [
-                                'rgba(255, 99, 132, 0.8)',
-                                'rgba(54, 162, 235, 0.8)',
-                                'rgba(255, 206, 86, 0.8)',
-                                'rgba(75, 192, 192, 0.8)',
-                                'rgba(153, 102, 255, 0.8)',
-                            ]
+                            backgroundColor: chartColors.slice(0, labels.length)
                         }]
                     },
                     options: {
@@ -181,45 +181,73 @@
                             },
                             title: {
                                 display: true,
-                                text: questionType.toLowerCase() === 'checkbox' ? 'Biểu đồ cột' : 'Biểu đồ tròn'
+                                text: 'Câu hỏi ' + questionId + ': ' + (chartType === 'bar' ? 'Biểu đồ cột' : 'Biểu đồ tròn')
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        var label = context.label || '';
+                                        var value = context.raw || 0;
+                                        var count = optionCounts[label] || 0;
+                                        return label + ': ' + value.toFixed(1) + '% (' + count + ' lựa chọn)';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                display: chartType === 'bar'
                             }
                         }
                     }
                 });
             });
-        }
 
-        function initializeDataTables() {
-            console.log("Initializing DataTables");
 
-            $('.survey-data-table').each(function () {
-                if ($.fn.DataTable.isDataTable(this)) {
-                    $(this).DataTable().destroy();
-                }
-                $(this).DataTable({
-                    "paging": true,
-                    "lengthChange": true,
-                    "searching": true,
-                    "ordering": true,
-                    "info": true,
-                    "autoWidth": false,
-                    "responsive": true,
-                    "language": {
-                        "zeroRecords": "Không tìm thấy dữ liệu",
-                        "info": "Hiển thị trang _PAGE_ / _PAGES_",
-                        "infoEmpty": "Không có dữ liệu",
-                        "infoFiltered": "(lọc từ _MAX_ dòng)",
-                        "search": "Tìm kiếm:",
-                        "paginate": {
-                            "first": "Đầu",
-                            "last": "Cuối",
-                            "next": "Tiếp",
-                            "previous": "Trước"
-                        }
-                    }
-                });
+            $('.rating-bars').each(function () {
+                var statistics = $(this).data('statistics').split(', ');
+                statistics.forEach(function (stat) {
+                    var parts = stat.split(': ');
+                    var stars = parseInt(parts[0].split(' ')[0]);
+                    var percentage = parseFloat(parts[1]);
+                    $(this).find('.rating-bar').eq(5 - stars).find('.progress-bar').css('width', percentage + '%');
+                    $(this).find('.rating-bar').eq(5 - stars).find('.percent').text(percentage.toFixed(1) + '%');
+                }.bind(this));
             });
         }
+
+    function initializeDataTables() {
+        console.log("Initializing DataTables");
+
+        $('.survey-data-table').each(function () {
+            if ($.fn.DataTable.isDataTable(this)) {
+                $(this).DataTable().destroy();
+            }
+            $(this).DataTable({
+                "paging": true,
+                "lengthChange": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "responsive": true,
+                "language": {
+                    "zeroRecords": "Không tìm thấy dữ liệu",
+                    "info": "Hiển thị trang _PAGE_ / _PAGES_",
+                    "infoEmpty": "Không có dữ liệu",
+                    "infoFiltered": "(lọc từ _MAX_ dòng)",
+                    "search": "Tìm kiếm:",
+                    "paginate": {
+                        "first": "Đầu",
+                        "last": "Cuối",
+                        "next": "Tiếp",
+                        "previous": "Trước"
+                    }
+                }
+            });
+        });
+    }
 
         $(document).ready(function () {
             $('#logoutButton').click(function (e) {

@@ -33,6 +33,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
 
     <style>
+     
         .card-body {
             padding: 0.5rem !important;
         }
@@ -305,12 +306,12 @@
                 <!-- User Icon -->
                 <li class="nav-item dropdown">
                     <a class="nav-link" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i style="font-size:35px" class="fas fa-user-circle"></i> 
+                        <i style="font-size:35px" class="fas fa-user-circle"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                        <a class="dropdown-item" href="#">Profile</a> <!-- Liên kết đến trang hồ sơ cá nhân nếu cần -->
+                        <a class="dropdown-item" href="#">Profile</a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#" id="logoutButton">Đăng xuất</a> <!-- Nút đăng xuất -->
+                        <a class="dropdown-item" href="#" id="logoutButton">Đăng xuất</a>
                     </div>
                 </li>
             </ul>
@@ -328,40 +329,46 @@
                 <!-- Sidebar Menu -->
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                        <li class="nav-item">
-                            <a asp-controller="Home" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "Home" ? "active" : "")">
-                                <i class="nav-icon fas fa-chart-line"></i>
-                                <p>Dashboard</p>
-                            </a>
-                        </li>
+                        @{
+                            bool hasHub = bool.Parse(Context.Session.GetString("HasHub") ?? "true");
+                        }
+                        @if (hasHub)
+                        {
+                            <li class="nav-item">
+                                <a asp-controller="Home" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "Home" ? "active" : "")">
+                                    <i class="nav-icon fas fa-chart-line"></i>
+                                    <p>Dashboard</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a asp-controller="CourseStatistics" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "CourseStatistics" ? "active" : "")">
+                                    <i class="nav-icon fas fa-chart-column"></i>
+                                    <p>Thống kê theo khóa học</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a asp-controller="CourseActivity" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "CourseActivity" ? "active" : "")">
+                                    <i class="nav-icon fas fa-book"></i>
+                                    <p>Hoạt động trên khóa học</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a asp-controller="CourseSurvey" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "CourseSurvey" ? "active" : "")">
+                                    <i class="nav-icon fas fa-square-poll-vertical"></i>
+                                    <p>Khảo sát khóa học</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a asp-controller="LessonStatistics" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "LessonStatistics" ? "active" : "")">
+                                    <i class="nav-icon fas fa-chart-pie"></i>
+                                    <p>Thống kê theo bài học</p>
+                                </a>
+                            </li>
+                        }
                         <li class="nav-item">
                             <a asp-controller="Sale" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "Sale" ? "active" : "")">
                                 <i class="nav-icon fas fa-money-check-alt"></i>
                                 <p>Bán hàng tích điểm</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a asp-controller="CourseStatistics" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "CourseStatistics" ? "active" : "")">
-                                <i class="nav-icon fas fa-chart-column"></i>
-                                <p>Thống kê theo khóa học</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a asp-controller="CourseActivity" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "CourseActivity" ? "active" : "")">
-                                <i class="nav-icon fas fa-book"></i>
-                                <p>Hoạt động trên khóa học</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a asp-controller="CourseSurvey" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "CourseSurvey" ? "active" : "")">
-                                <i class="nav-icon fas fa-square-poll-vertical"></i>
-                                <p>Khảo sát khóa học</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a asp-controller="LessonStatistics" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"].ToString() == "LessonStatistics" ? "active" : "")">
-                                <i class="nav-icon fas fa-chart-pie"></i>
-                                <p>Thống kê theo bài học</p>
                             </a>
                         </li>
                     </ul>
