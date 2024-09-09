@@ -78,5 +78,6 @@ namespace Data.Medihub4rumEntities
         public string? Code { get; set; }
         public string? ImageDegree { get; set; }
         public int Point { get; set; }
+        public bool IsTest { get; set; }
     }
 }

@@ -14,7 +14,6 @@ namespace Data.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<LogClickCourse>().HasKey(m => new { m.Id });
             modelBuilder.Entity<LogLesson>().HasKey(m => new { m.Id });
         }
         public  DbSet<LogClickCourse> LogClickCourse { get; set; }

@@ -78,6 +78,25 @@
             $('#courseSelect').change(onCourseChange);
         });
 
+        $(document).ready(function () {
+            $('#logoutButton').click(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '@Url.Action("Logout", "Account")',
+                    type: 'POST',
+                    success: function (result) {
+                        if (result.success) {
+                            window.location.href = result.redirectUrl;
+                        } else {
+                            console.log('Logout failed');
+                        }
+                    },
+                    error: function (error) {
+                        console.log('Logout error:', error);
+                    }
+                });
+            });
+        });
         function initializePage() {
             $('#courseSelect').select2();
             initializeDatepickers();

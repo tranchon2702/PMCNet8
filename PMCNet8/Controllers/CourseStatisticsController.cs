@@ -36,7 +36,7 @@ public class CourseStatisticsController : Controller
         {
             model.SelectedCourseId = courseId.Value;
             model.CourseInfo = await GetCourseInfoAsync(courseId.Value);
-            model.UnregisteredPharmacists = (await GetUnregisteredPharmacistAsync(courseId.Value)).ToList();
+            model.UnregisteredPharmacists = (await GetRegisteredPharmacistAsync(courseId.Value)).ToList();
             model.AchieveTargets = await GetAchieveTargetsAsync(courseId.Value);
         }
         if (model.AchieveTargets == null)
@@ -55,7 +55,7 @@ public class CourseStatisticsController : Controller
         {
             model.SelectedCourseId = model.CourseListItems.First().Id;
             model.CourseInfo = await GetCourseInfoAsync(model.SelectedCourseId);
-            model.UnregisteredPharmacists = (await GetUnregisteredPharmacistAsync(model.SelectedCourseId)).ToList();
+            model.UnregisteredPharmacists = (await GetRegisteredPharmacistAsync(model.SelectedCourseId)).ToList();
         }
 
         return View(model);
@@ -158,73 +158,77 @@ public class CourseStatisticsController : Controller
     }
 
 
-    private async Task<IEnumerable<UnregisteredPharmacistViewModel>> GetUnregisteredPharmacistAsync(Guid courseId)
+    private async Task<IEnumerable<UnregisteredPharmacistViewModel>> GetRegisteredPharmacistAsync(Guid courseId)
     {
         try
         {
-            var courseActiveKeys = await _mediHubSCAppContext.CPECourseActive
-                .Where(cpa => cpa.CategoryId == courseId)
-                .Select(cpa => cpa.KeyCodeActive)
+            // Lấy tất cả các lessonId (TopicId) của khóa học
+            var lessonIds = await _mediHub4RumContext.Topic
+                .Where(t => t.Category_Id == courseId)
+                .Select(t => t.Id)
                 .ToListAsync();
 
-            var appSetups = await _mediHubSCAppContext.AppSetup
-                .Where(app => courseActiveKeys.Contains(app.KeyCodeActive))
-                .Select(app => new
-                {
-                    app.KeyCodeActive,
-                    app.SCName,
-                    app.PhoneNumber,
-                    app.DrugName,
-                    app.Address
-                })
-                .ToListAsync();
-
-            var registeredKeys = await _mediHub4RumContext.MediHubScQuizResult
-                .Select(qr => qr.KeyAppActive)
-                .ToListAsync();
-
-            var unregisteredPharmacists = appSetups
-        .Where(setup => setup.KeyCodeActive != null && !registeredKeys.Contains(setup.KeyCodeActive))
-        .Select(setup => new UnregisteredPharmacistViewModel
-        {
-            TenDuocSi = setup.SCName ?? "",
-            SoDienThoai = setup.PhoneNumber ?? "",
-            DonViCongTac = setup.DrugName ?? "",
-            DiaChi = setup.Address ?? "",
-            DaXacThuc = false,
-            KeyCodeActive = setup.KeyCodeActive
-        })
-        .ToList();
-
-            var userIds = await _mediHub4RumContext.MembershipUser
-                .Where(mu => unregisteredPharmacists.Select(up => up.KeyCodeActive).Contains(mu.KeyCodeActive))
-                .Select(mu => new { mu.Id, mu.KeyCodeActive })
-                .ToListAsync();
-
-            var userInfos = await _mediHub4RumContext.MembershipUserInfo
-            .Where(mui => userIds.Select(u => u.Id).Contains(mui.UserId))
-            .Select(mui => new { mui.UserId, mui.TrangThai })
-            .ToListAsync();
-
-            foreach (var pharmacist in unregisteredPharmacists)
+            if (!lessonIds.Any())
             {
-                var userId = userIds.FirstOrDefault(u => u.KeyCodeActive == pharmacist.KeyCodeActive)?.Id;
-                if (userId != null)
+                _logger.LogWarning($"No lessons found for courseId: {courseId}");
+                return new List<UnregisteredPharmacistViewModel>();
+            }
+
+            // Lấy thông tin từ LogLesson cho tất cả các bài học
+            var userQuery = _logActionDbContext.LogLesson
+                .Where(ll => lessonIds.Contains(ll.TopicId));
+            var userLessons = await userQuery
+                .Select(ll => new { ll.UserId, ll.Status, ll.Result, ll.DateAccess })
+                .ToListAsync();
+
+            var userIds = userLessons.Select(ul => ul.UserId).Distinct().ToList();
+
+            // Lấy thông tin người dùng
+            var users = await _mediHub4RumContext.MembershipUser
+                .Where(mu => userIds.Contains(mu.Id)&& mu.IsTest == false)
+                .ToListAsync();
+
+            // Lấy thông tin AppSetup
+            var appSetups = await _mediHubSCAppContext.AppSetup
+                .Where(app => users.Select(u => u.KeyCodeActive).Contains(app.KeyCodeActive))
+                .ToListAsync();
+
+            var registeredPharmacists = users.Select(user =>
+            {
+                var appSetup = appSetups.FirstOrDefault(app => app.KeyCodeActive == user.KeyCodeActive);
+                var userLesson = userLessons.FirstOrDefault(ul => ul.UserId == user.Id);
+                return new UnregisteredPharmacistViewModel
                 {
-                    var userInfo = userInfos.FirstOrDefault(ui => ui.UserId == userId);
+                    TenDuocSi = appSetup?.SCName ?? user.UserName,
+                    SoDienThoai = appSetup?.PhoneNumber ?? "",
+                    DonViCongTac = appSetup?.DrugName ?? "",
+                    DiaChi = appSetup?.Address ?? "",
+                    DaXacThuc = false,
+                    KeyCodeActive = appSetup?.KeyCodeActive ?? ""
+                };
+            }).ToList();
+
+            // Lấy thông tin xác thực
+            var userInfos = await _mediHub4RumContext.MembershipUserInfo
+                .Where(mui => userIds.Contains(mui.UserId))
+                .Select(mui => new { mui.UserId, mui.TrangThai })
+                .ToListAsync();
+
+            foreach (var pharmacist in registeredPharmacists)
+            {
+                var user = users.FirstOrDefault(u => u.KeyCodeActive == pharmacist.KeyCodeActive);
+                if (user != null)
+                {
+                    var userInfo = userInfos.FirstOrDefault(ui => ui.UserId == user.Id);
                     pharmacist.DaXacThuc = userInfo?.TrangThai == 2;
-                }
-                else
-                {
-                    pharmacist.DaXacThuc = false;
                 }
             }
 
-            return unregisteredPharmacists;
+            return registeredPharmacists;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred in GetUnregisteredPharmacistAsync");
+            _logger.LogError(ex, "Unexpected error occurred in GetRegisteredPharmacistAsync for courseId: {CourseId}", courseId);
             throw;
         }
     }
@@ -234,7 +238,7 @@ public class CourseStatisticsController : Controller
     {
         try
         {
-            var result = await GetUnregisteredPharmacistAsync(courseId);
+            var result = await GetRegisteredPharmacistAsync(courseId);
             return Ok(result);
         }
         catch (Exception ex)
@@ -321,7 +325,6 @@ public class CourseStatisticsController : Controller
     private async Task<AchieveTargetsViewModel> GetAchieveTargetsAsync(Guid courseId)
     {
         var result = new AchieveTargetsViewModel();
-
         try
         {
             // Lấy thông tin từ SponsorHubCourse
@@ -342,6 +345,7 @@ public class CourseStatisticsController : Controller
                 result.TargetEndDate = courseInfo.TargetEndDate;
                 result.TargetFinish = courseInfo.TargetFinish;
                 result.TargetJoin = courseInfo.TargetJoin;
+
             }
 
             // Nếu không có dữ liệu trong SponsorHubCourse, lấy từ LogClickCourse
@@ -367,26 +371,61 @@ public class CourseStatisticsController : Controller
 
             // Tính toán 5 mốc thời gian
             var timePoints = CalculateTimePoints(result.TargetStartDate.Value, result.TargetEndDate.Value);
-
             result.TotalJoins = new Dictionary<DateTime, int>();
             result.TotalFinishs = new Dictionary<DateTime, int>();
+            result.TotalPassed = new Dictionary<DateTime, int>();
+            result.TotalEnters = new Dictionary<DateTime, int>();
+            result.TotalWatchedAllVideos = new Dictionary<DateTime, int>(); // Thêm dòng này
+
+            var lessonIds = await _mediHub4RumContext.Topic
+                .Where(t => t.Category_Id == courseId)
+                .Select(t => t.Id)
+                .ToListAsync();
 
             foreach (var point in timePoints)
             {
-                // Tính tổng số người tham gia đến thời điểm này
+                // Tính tổng số người vào khóa học 
                 result.TotalJoins[point] = await _logActionDbContext.LogClickCourse
                     .Where(e => e.CourseId == courseId && e.CreatedDate < point)
                     .Select(e => e.UserId)
                     .Distinct()
                     .CountAsync();
 
-                // Tính tổng số người hoàn thành đến thời điểm này
+                // Tính tổng số người hoàn thành đến thời điểm này (không phân biệt đạt/không đạt)
                 result.TotalFinishs[point] = await _mediHub4RumContext.SponsorHubCourseFinish
                     .Where(e => e.CategoryId == courseId && e.FinishDate < point)
                     .Select(e => e.UserId)
                     .Distinct()
                     .CountAsync();
+
+                // Tính tổng số người vượt qua bài kiểm tra đến thời điểm này
+                result.TotalPassed[point] = await _mediHub4RumContext.SponsorHubCourseFinish
+                    .Where(e => e.CategoryId == courseId && e.FinishDate < point && e.IsPassed == true)
+                    .Select(e => e.UserId)
+                    .Distinct()
+                    .CountAsync();
+
+                // Tính tổng số người tham gia khóa học
+                result.TotalEnters[point] = await _logActionDbContext.LogLesson
+                    .Where(ll => lessonIds.Contains(ll.TopicId) && ll.DateAccess < point)
+                    .Select(l => l.UserId)
+                    .Distinct()
+                    .CountAsync();
+                // Tính tổng số người xem hết video
+                var usersWatchedAllVideos = await _logActionDbContext.LogLesson
+                .Where(ll => lessonIds.Contains(ll.TopicId) && ll.DateAccess < point)
+                .GroupBy(ll => ll.UserId)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    DistinctLessonCount = g.Select(ll => ll.TopicId).Distinct().Count()
+                })
+                .Where(u => u.DistinctLessonCount == lessonIds.Count)
+                .CountAsync();
+
+                result.TotalWatchedAllVideos[point] = usersWatchedAllVideos;
             }
+        
 
             return result;
         }
@@ -433,7 +472,7 @@ public class CourseStatisticsController : Controller
 
         model.SelectedCourseId = courseId;
         model.CourseInfo = await GetCourseInfoAsync(courseId);
-        model.UnregisteredPharmacists = (await GetUnregisteredPharmacistAsync(courseId)).ToList();
+        model.UnregisteredPharmacists = (await GetRegisteredPharmacistAsync(courseId)).ToList();
         model.AchieveTargets = await GetAchieveTargetsAsync(courseId);
 
         return PartialView("_CourseStatistics", model);

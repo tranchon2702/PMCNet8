@@ -149,7 +149,7 @@ namespace PMCNet8.Controllers
             var userCompletions = await query.Select(e => e.UserId).ToListAsync();
 
             var users = await _mediHub4RumContext.MembershipUser
-                .Where(mu => userCompletions.Contains(mu.Id))
+                .Where(mu => userCompletions.Contains(mu.Id)&& mu.IsTest == false)
                 .ToListAsync();
 
             var appSetups = await _mediHubSCAppContext.AppSetup

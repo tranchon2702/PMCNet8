@@ -39,7 +39,7 @@ namespace PMCNet8.Controllers
             {
                 return BadRequest("Invalid SponsorId");
             }
-            int count = await GetUserStudyForMonthAsync(sponsorId);
+            int count  = await GetUserStudyForMonthAsync(sponsorId);
             return Ok(count);
         }
 
@@ -415,12 +415,25 @@ namespace PMCNet8.Controllers
 
             try
             {
-                return await _mediHub4RumContext.SponsorHubCourseReport
-                    .Where(x => x.Category.HubCourse != null
-                             && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Year == currentYear
-                             && x.Month == currentMonth)
-                    .SumAsync(x => x.FinishAtleastOneLesson);
+
+                
+                // Lấy danh sách CategoryId của Sponsor
+                var categoryIds = await _mediHub4RumContext.SponsorHubCourse
+                    .Where(shc => shc.SponsorId == sponsorId)
+                    .Select(shc => shc.CategoryId)
+                    .ToListAsync();
+                var lessonIds = await _mediHub4RumContext.Topic
+                 .Where(t => categoryIds.Contains(t.Category_Id))
+                 .Select(t => t.Id)
+                 .ToListAsync();
+                // Đếm số lượng UserId duy nhất
+                return await _logActionContext.LogLesson
+                    .Where(x => lessonIds.Contains(x.TopicId)
+                             && x.DateAccess.Year == currentYear
+                             && x.DateAccess.Month == currentMonth)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .CountAsync();
             }
             catch (Exception ex)
             {
@@ -435,41 +448,58 @@ namespace PMCNet8.Controllers
 
             try
             {
-                return await _mediHub4RumContext.SponsorHubCourseReport
-                    .Where(x => x.Category.HubCourse != null
-                             && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Year == currentYear)
-                    .SumAsync(x => x.FinishAtleastOneLesson);
+                // Lấy danh sách CategoryId của Sponsor
+                var categoryIds = await _mediHub4RumContext.SponsorHubCourse
+                    .Where(shc => shc.SponsorId == sponsorId)
+                    .Select(shc => shc.CategoryId)
+                    .ToListAsync();
+                var lessonIds = await _mediHub4RumContext.Topic
+                 .Where(t => categoryIds.Contains(t.Category_Id))
+                 .Select(t => t.Id)
+                 .ToListAsync();
+                // Đếm số lượng UserId duy nhất
+                return await _logActionContext.LogLesson
+                    .Where(x => lessonIds.Contains(x.TopicId)
+                             && x.DateAccess.Year == currentYear)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .CountAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error in GetUserStudyForMonthAsync for SponsorId: {sponsorId}");
+                _logger.LogError(ex, $"Error in GetUserStudyForYearAsync for SponsorId: {sponsorId}");
                 throw;
             }
         }
         private async Task<int> GetTotalUsersCompletedCoursesAsync(DateTime startDate, DateTime endDate, Guid sponsorId)
         {
+            // Lấy danh sách CategoryId của Sponsor
+            var categoryIds = await _mediHub4RumContext.SponsorHubCourse
+                .Where(shc => shc.SponsorId == sponsorId)
+                .Select(shc => shc.CategoryId)
+                .ToListAsync();
+
             return await _mediHub4RumContext.SponsorHubCourseFinish
                 .Where(cfr =>  cfr.FinishDate >= startDate
                            && cfr.FinishDate <= endDate
-                           && _mediHub4RumContext.SponsorHubCourse
-                               .Where(shc => shc.SponsorId == sponsorId)
-                               .Select(shc => shc.CategoryId)
-                               .Contains(cfr.CategoryId))
+                           && categoryIds.Contains(cfr.CategoryId))
                 .Select(cfr => cfr.UserId)
                 .Distinct()
                 .CountAsync();
         }
         private async Task<int> GetTotalUsersGetCertificatesAsync(DateTime startDate, DateTime endDate, Guid sponsorId)
         {
+            // Lấy danh sách CategoryId của Sponsor
+            var categoryIds = await _mediHub4RumContext.SponsorHubCourse
+                .Where(shc => shc.SponsorId == sponsorId)
+                .Select(shc => shc.CategoryId)
+                .ToListAsync();
+
             return await _mediHub4RumContext.SponsorHubCourseFinish
-                .Where(cfr => cfr.IsPassed == true
-                           && cfr.FinishDate >= startDate
+                .Where(cfr => cfr.FinishDate >= startDate
                            && cfr.FinishDate <= endDate
-                           && _mediHub4RumContext.SponsorHubCourse
-                               .Where(shc => shc.SponsorId == sponsorId)
-                               .Select(shc => shc.CategoryId)
-                               .Contains(cfr.CategoryId))
+                           && categoryIds.Contains(cfr.CategoryId)
+                           && cfr.IsPassed == true)
                 .Select(cfr => cfr.UserId)
                 .Distinct()
                 .CountAsync();

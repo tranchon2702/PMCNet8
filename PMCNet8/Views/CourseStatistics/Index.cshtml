@@ -50,12 +50,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script>
         google.charts.load('current', { 'packages': ['corechart'] });
-        google.charts.setOnLoadCallback(function () {
-            // Gọi initializeCharts ở đây nếu dữ liệu đã sẵn sàng khi trang load
-            if (typeof pieData !== 'undefined' && typeof achieveTargets !== 'undefined') {
-                initializeCharts();
-            }
-        });
+        google.charts.setOnLoadCallback(initializeCharts);
 
         $(document).ready(function () {
             var $courseSelect = $('#courseSelect');
@@ -64,19 +59,12 @@
                 width: '100%',
                 placeholder: "Chọn khóa học",
                 allowClear: true
-                
             });
 
-            // Bắt sự kiện khi Select2 hoàn thành việc khởi tạo
             $courseSelect.on('select2:open', function (e) {
-                // Chỉ thực hiện một lần
                 if (!$(this).data('select2-open-handled')) {
                     $(this).data('select2-open-handled', true);
-
-                    // Đóng Select2 ngay lập tức
                     $courseSelect.select2('close');
-
-                    // Load dữ liệu cho khóa học đầu tiên
                     var firstCourseId = $courseSelect.val();
                     if (firstCourseId) {
                         loadCourseData(firstCourseId);
@@ -101,7 +89,7 @@
                     initializeDataTable();
                 },
                 error: function (error) {
-                    console.log('Error:', error);
+                    console.error('Error loading course data:', error);
                 }
             });
         }
@@ -110,7 +98,7 @@
             if (typeof pieData !== 'undefined' && pieData !== null &&
                 typeof achieveTargets !== 'undefined' && achieveTargets !== null) {
                 drawPieChart();
-                drawChart();
+                drawLineChart();
             } else {
                 console.error("Chart data is not available", { pieData, achieveTargets });
             }
@@ -123,7 +111,7 @@
             }
             var data = google.visualization.arrayToDataTable(pieData);
             var options = {
-                title: '',
+                title: 'Tình hình cấp phát và sử dụng mã khóa học',
                 is3D: true,
                 colors: ['#FF6384', '#36A2EB'],
                 legend: { position: 'none' },
@@ -138,20 +126,108 @@
             pieChart.draw(data, options);
         }
 
-        function calculateIntermediateDates(startDate, endDate, numberOfPoints) {
-            const dates = [];
-            const millisecondsPerDay = 24 * 60 * 60 * 1000;
-            const totalDays = Math.round((endDate - startDate) / millisecondsPerDay);
-            const daysBetweenPoints = Math.floor(totalDays / (numberOfPoints - 1));
-
-            for (let i = 0; i < numberOfPoints; i++) {
-                const currentDate = new Date(startDate.getTime() + (daysBetweenPoints * i * millisecondsPerDay));
-                dates.push(currentDate);
+        function drawChart() {
+            if (typeof achieveTargets === 'undefined' || !achieveTargets.totalJoins || !achieveTargets.totalWatchedAllVideos ||
+                !achieveTargets.totalEnters || !achieveTargets.totalFinishs || !achieveTargets.totalPassed) {
+                console.error("Invalid or missing achieveTargets data", achieveTargets);
+                return;
             }
 
-            dates[dates.length - 1] = new Date(endDate);
-            return dates;
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Ngày');
+            data.addColumn('number', 'Vào khóa học');
+            data.addColumn('number', 'Tham gia');
+            data.addColumn('number', 'Xem hết tất cả bài học');
+            data.addColumn('number', 'Hoàn thành bài kiểm tra');
+            data.addColumn('number', 'Vượt qua bài kiểm tra');
+
+            Object.keys(achieveTargets.totalJoins).forEach(dateString => {
+                var date = new Date(dateString);
+                var formattedDate = date.toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }).replace(/\//g, '/');
+
+                data.addRow([
+                    formattedDate,
+                    achieveTargets.totalJoins[dateString] || 0,
+                    achieveTargets.totalEnters[dateString] || 0,
+                    achieveTargets.totalWatchedAllVideos[dateString] || 0,
+                    achieveTargets.totalFinishs[dateString] || 0,
+                    achieveTargets.totalPassed[dateString] || 0
+                ]);
+            });
+
+            var options = {
+                title: 'Tình hình đạt chỉ tiêu',
+                titleTextStyle: {
+                    fontSize: 22,
+                    color: '#333',
+                    bold: true
+                },
+                legend: {
+                    position: 'bottom',
+                    alignment: 'center',
+                    textStyle: { fontSize: 12 }
+                },
+                lineWidth: 2,
+                pointSize: 5,
+                pointShape: 'circle',
+                hAxis: {
+                    title: '',
+                    textStyle: {
+                        fontSize: 11,
+                        color: '#666'
+                    },
+                    gridlines: {
+                        color: '#f3f3f3',
+                        count: -1
+                    },
+                    minorGridlines: {
+                        color: '#f9f9f9'
+                    }
+                },
+                vAxis: {
+                    title: '',
+                    textStyle: {
+                        fontSize: 11,
+                        color: '#666'
+                    },
+                    gridlines: {
+                        color: '#f3f3f3'
+                    },
+                    minValue: 0,
+                    viewWindow: {
+                        min: 0
+                    }
+                },
+                colors: ['#000000', '#FF0000', '#00CC00', '#FFA500', '#8B00FF'],
+                chartArea: {
+                    width: '85%',
+                    height: '70%'
+                },
+                backgroundColor: {
+                    fill: '#FFFFFF'
+                },
+                height: 500,
+                width: '100%',
+                animation: {
+                    startup: true,
+                    duration: 1000,
+                    easing: 'out'
+                },
+                tooltip: {
+                    isHtml: true,
+                    trigger: 'both'
+                },
+                focusTarget: 'category'
+            };
+
+            var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+            chart.draw(data, options);
         }
+
         function initializeDataTable() {
             if ($.fn.DataTable.isDataTable('#pharmacistTable')) {
                 $('#pharmacistTable').DataTable().destroy();
@@ -183,68 +259,11 @@
             });
         }
 
-
-        function drawChart() {
-            if (typeof achieveTargets === 'undefined' || !achieveTargets.totalFinishs || !achieveTargets.totalJoins) {
-                console.error("Invalid or missing achieveTargets data", achieveTargets);
-                return;
-            }
-
-            var data = new google.visualization.DataTable();
-            data.addColumn('string', 'Ngày');
-            data.addColumn('number', 'Tổng tham gia');
-            data.addColumn('number', 'Tổng hoàn thành');
-
-            Object.keys(achieveTargets.totalFinishs).forEach(dateString => {
-                var date = new Date(dateString);
-                var formattedDate = date.toLocaleDateString('vi-VN', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                }).replace(/\//g, '/');
-                data.addRow([
-                    formattedDate,
-                    achieveTargets.totalJoins[dateString] || 0,
-                    achieveTargets.totalFinishs[dateString] || 0
-                ]);
-            });
-
-            var options = {
-                title: 'Tình hình đạt chỉ tiêu',
-                titleTextStyle: { fontSize: 18 },
-                legend: { position: 'none' },  // Disable default legend
-                lineWidth: 3,
-                pointSize: 8,
-                hAxis: {
-                    title: '',
-                    titleTextStyle: { color: '#333', fontSize: 16, bold: true },
-                    slantedText: false,
-                    slantedTextAngle: 0,
-                    textStyle: {
-                        fontSize: 15,
-                        bold: true
-                    },
-                    format: 'dd/MM/yyyy'
-                },
-                vAxis: {
-                    title: '',
-                    minValue: 0,
-                    titleTextStyle: { color: '#333', fontSize: 16, bold: true },
-                    textStyle: { fontSize: 14 }
-                },
-                colors: ['#FFCE56', '#4BC0C0'],
-                curveType: 'function',
-                chartArea: {
-                    width: '80%',
-                    height: '70%'
-                },
-                height: 400,
-                width: '100%'
-            };
-
-            var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
-            chart.draw(data, options);
-        }
+        $(document).ready(function () {
+            initializeDataTable();
+            google.charts.load('current', { 'packages': ['corechart'] });
+            google.charts.setOnLoadCallback(drawChart);
+        });
         $(document).ready(function () {
             $('#logoutButton').click(function (e) {
                 e.preventDefault();
@@ -263,12 +282,6 @@
                     }
                 });
             });
-        });
-
-        // Make sure to call drawChart after the data is loaded and the DOM is ready
-        $(document).ready(function () {
-            google.charts.load('current', { 'packages': ['corechart'] });
-            google.charts.setOnLoadCallback(drawChart);
         });
     </script>
 }

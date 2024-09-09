@@ -142,7 +142,8 @@ namespace PMCNet8.Controllers
 
         private async Task<List<LessonUserActivityViewModel>> GetTableDataAsync(Guid lessonId, DateTime? parsedStartDate, DateTime? parsedEndDate)
         {
-            var userQuery = _logActionDbContext.LogLesson.Where(ll => ll.TopicId == lessonId);
+            var userQuery = _logActionDbContext.LogLesson
+                .Where(ll => ll.TopicId == lessonId);
 
             if (parsedStartDate.HasValue)
                 userQuery = userQuery.Where(ll => ll.DateAccess.Date >= parsedStartDate.Value.Date);
@@ -153,7 +154,7 @@ namespace PMCNet8.Controllers
             var userIds = userLessons.Select(ul => ul.UserId).Distinct().ToList();
 
             var users = await _mediHub4RumContext.MembershipUser
-                .Where(mu => userIds.Contains(mu.Id))
+                .Where(mu => userIds.Contains(mu.Id) && mu.IsTest == false)
                 .ToListAsync();
 
             var appSetups = await _mediHubSCAppContext.AppSetup
