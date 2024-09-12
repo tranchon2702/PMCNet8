@@ -12,6 +12,7 @@ namespace Data.Medihub4rumEntities
         public Guid UserId { get; set; }
         public DateTime FinishDate { get; set; }
         public bool IsPassed { get; set; }
+        public Guid SponsorId { get; set; }
 
         [ForeignKey("CategoryId")]
         public Category Category { get; set; }

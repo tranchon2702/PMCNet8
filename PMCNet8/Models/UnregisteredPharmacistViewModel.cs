@@ -12,5 +12,6 @@ namespace PMCNet8.Models
 
         [AllowNull]
         public string? KeyCodeActive { get; set; }
+        public DateTime NgayHoanThanh{ get; set; }
     }
 }

@@ -89,12 +89,8 @@
                 <div class="chart-legend">
                     <div class="chart-legend">
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #000000;"></span>
-                            <span>Vào khóa học</span>
-                        </div>
-                        <div class="legend-item">
                             <span class="legend-color" style="background-color: #FF0000;"></span>
-                            <span>Tham gia</span>
+                            <span>Tham gia học</span>
                         </div>
                         <div class="legend-item">
                             <span class="legend-color" style="background-color: #00CC00;"></span>
@@ -116,42 +112,46 @@
 </div>
 
 <!-- Table -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-dark text-white">
-                <h3 style="color:white" class="card-title">Danh sách các Dược sĩ đã học bài học</h3>
-                <button style="height:28px" id="exportCompletedButton" class="btn btn-success float-right btn-xs"><i class="fas fa-file-excel"></i>  Xuất file Excel</button>
-            </div>
-            <div class="card-body">
-                <table id="pharmacistTable" class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Tên Dược sĩ</th>
-                            <th>Số điện thoại</th>
-                            <th>Đơn vị công tác</th>
-                            <th>Địa chỉ</th>
-                            <th>Đã xác thực</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var pharmacist in Model.UnregisteredPharmacists)
-                        {
+@if (Model.CourseInfo.Type == 0) // Chỉ hiển thị khi khóa học có cấp chứng chỉ
+{
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h3 style="color:white" class="card-title">Danh sách các Dược sĩ được cấp chứng chỉ</h3>
+                    <button style="height:28px" id="exportCompletedButton" class="btn btn-success float-right btn-xs"><i class="fas fa-file-excel"></i>  Xuất file Excel</button>
+                </div>
+                <div class="card-body">
+                    <table id="pharmacistTable" class="table table-bordered table-hover">
+                        <thead>
                             <tr>
-                                <td>@pharmacist.TenDuocSi</td>
-                                <td>@pharmacist.SoDienThoai</td>
-                                <td>@pharmacist.DonViCongTac</td>
-                                <td>@pharmacist.DiaChi</td>
-                                <td>@(pharmacist.DaXacThuc ? "Đã xác thực" : "Chưa xác thực")</td>
+                                <th>Tên Dược sĩ</th>
+                                <th>Số điện thoại</th>
+                                <th>Đơn vị công tác</th>
+                                <th>Địa chỉ</th>
+                                <th>Đã xác thực</th>
+                                <th>Thời gian hoàn thành</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var pharmacist in Model.UnregisteredPharmacists)
+                            {
+                                <tr>
+                                    <td>@pharmacist.TenDuocSi</td>
+                                    <td>@pharmacist.SoDienThoai</td>
+                                    <td>@pharmacist.DonViCongTac</td>
+                                    <td>@pharmacist.DiaChi</td>
+                                    <td>@(pharmacist.DaXacThuc ? "Đã xác thực" : "Chưa xác thực")</td>
+                                    <td>@(pharmacist.NgayHoanThanh.ToString("dd/MM/yyyy HH:mm"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
+}
 <script>
     var defaultSelectedCourseId = '@Model.SelectedCourseId';
     var pieData = @Html.Raw(Json.Serialize(Model.CourseInfo.PieData));

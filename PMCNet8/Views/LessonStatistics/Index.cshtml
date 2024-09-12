@@ -60,6 +60,7 @@
     <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script>
         var dataTable;
 
@@ -165,7 +166,8 @@
                     "paging": true,
                     "lengthChange": true,
                     "searching": true,
-                    "ordering": true,
+                    "ordering": false,
+                    "order": [[6, "desc"]],
                     "info": true,
                     "autoWidth": false,
                     "responsive": true,

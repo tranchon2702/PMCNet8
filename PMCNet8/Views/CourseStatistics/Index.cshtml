@@ -48,6 +48,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script>
         google.charts.load('current', { 'packages': ['corechart'] });
         google.charts.setOnLoadCallback(initializeCharts);
@@ -127,21 +128,21 @@
         }
 
         function drawChart() {
-            if (typeof achieveTargets === 'undefined' || !achieveTargets.totalJoins || !achieveTargets.totalWatchedAllVideos ||
-                !achieveTargets.totalEnters || !achieveTargets.totalFinishs || !achieveTargets.totalPassed) {
+            if (typeof achieveTargets === 'undefined' || !achieveTargets.totalEnters ||
+                !achieveTargets.totalWatchedAllVideos || !achieveTargets.totalFinishs ||
+                !achieveTargets.totalPassed) {
                 console.error("Invalid or missing achieveTargets data", achieveTargets);
                 return;
             }
 
             var data = new google.visualization.DataTable();
             data.addColumn('string', 'Ngày');
-            data.addColumn('number', 'Vào khóa học');
-            data.addColumn('number', 'Tham gia');
+            data.addColumn('number', 'Tham gia học');
             data.addColumn('number', 'Xem hết tất cả bài học');
             data.addColumn('number', 'Hoàn thành bài kiểm tra');
             data.addColumn('number', 'Vượt qua bài kiểm tra');
 
-            Object.keys(achieveTargets.totalJoins).forEach(dateString => {
+            Object.keys(achieveTargets.totalEnters).forEach(dateString => {
                 var date = new Date(dateString);
                 var formattedDate = date.toLocaleDateString('vi-VN', {
                     day: '2-digit',
@@ -151,7 +152,6 @@
 
                 data.addRow([
                     formattedDate,
-                    achieveTargets.totalJoins[dateString] || 0,
                     achieveTargets.totalEnters[dateString] || 0,
                     achieveTargets.totalWatchedAllVideos[dateString] || 0,
                     achieveTargets.totalFinishs[dateString] || 0,
@@ -202,7 +202,7 @@
                         min: 0
                     }
                 },
-                colors: ['#000000', '#FF0000', '#00CC00', '#FFA500', '#8B00FF'],
+                colors: [ '#FF0000', '#00CC00', '#FFA500', '#8B00FF'],
                 chartArea: {
                     width: '85%',
                     height: '70%'
@@ -236,7 +236,8 @@
                 "paging": true,
                 "lengthChange": true,
                 "searching": true,
-                "ordering": true,
+                "ordering": false,
+                "order": [[5, "desc"]],
                 "info": true,
                 "autoWidth": false,
                 "responsive": true,
@@ -255,7 +256,19 @@
                         "next": "Tiếp",
                         "previous": "Trước"
                     }
-                }
+                },
+                "columnDefs": [
+                    {
+                        "targets": 5,
+                        "type": "date",
+                        "render": function (data, type, row) {
+                            if (type === "sort" || type === "type") {
+                                return data ? moment(data, "DD/MM/YYYY HH:mm").format("YYYY-MM-DD HH:mm") : "";
+                            }
+                            return data;
+                        }
+                    }
+                ]
             });
         }
 

@@ -75,7 +75,7 @@ namespace PMCNet8.Controllers
 
                 var topics = await _mediHub4RumContext.Topic
                     .Where(t => t.Category_Id == courseId)
-                    .Select(t => new TopicInfo { Id = t.Id, Name = t.Name })
+                    .Select(t => new TopicInfo { Id = t.Id, Name = t.Name , Order = t.Order })
                     .ToListAsync();
 
                 var chartData = await GetChartDataAsync(topics, parsedStartDate, parsedEndDate);
@@ -111,13 +111,16 @@ namespace PMCNet8.Controllers
                 .ToListAsync();
         }
 
+       
         private async Task<List<ChartDataViewModel>> GetChartDataAsync(List<TopicInfo> topics, DateTime? startDate, DateTime? endDate)
         {
+            
+            topics = topics.OrderBy(t => t.Order).ToList();
+
             var chartData = new List<ChartDataViewModel>();
             foreach (var topic in topics)
             {
                 var query = _logActionDbContext.LogLesson.Where(ll => ll.TopicId == topic.Id);
-
                 if (startDate.HasValue && endDate.HasValue)
                 {
                     query = query.Where(ll => ll.DateAccess.Date >= startDate.Value.Date && ll.DateAccess.Date <= endDate.Value.Date);
@@ -128,14 +131,13 @@ namespace PMCNet8.Controllers
                 chartData.Add(new ChartDataViewModel
                 {
                     Lesson = topic.Name,
-                    Joins = topicLogs.Count(l => l.Status == "Access"),
+                    Joins = topicLogs.Select(l => l.UserId).Distinct().Count(userId => topicLogs.Any(l => l.UserId == userId && l.Status == "Access")),
                     CompleteTest = topicLogs.Count(l => l.Status == "PostTest" && IsPassingScore(l.Result)),
                     FailedTest = topicLogs.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result))
                 });
             }
             return chartData;
         }
-
         private async Task<List<CourseActivityViewModel>> GetTableDataAsync(Guid courseId, DateTime? startDate, DateTime? endDate)
         {
             var query = _mediHub4RumContext.SponsorHubCourseFinish

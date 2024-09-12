@@ -10,7 +10,7 @@
             <div class="col-lg-4 col-6">
                 <div class="small-box bg-success">
                     <div class="inner">
-                        <p>Tổng số được sĩ đã tham gia học</p>
+                        <p>Tổng số dược sĩ đã tham gia học</p>
                         <h3 id="totalParticipantsMonth">Loading...</h3>
                     </div>
                     <div class="icon">
@@ -34,7 +34,7 @@
             <div class="col-lg-4 col-6">
                 <div class="small-box bg-warning">
                     <div class="inner">
-                        <p>Số được sĩ đã nhận chứng chỉ</p>
+                        <p>Số dược sĩ đã nhận chứng chỉ</p>
                         <h3 id="getCertificatesMonth">Loading...</h3>
                     </div>
                     <div class="icon">
@@ -50,7 +50,7 @@
             <div class="col-lg-4 col-6">
                 <div class="small-box bg-success">
                     <div class="inner">
-                        <p>Tổng số được sĩ đã tham gia học</p>
+                        <p>Tổng số dược sĩ đã tham gia học</p>
                         <h3 id="totalParticipantsYear">Loading...</h3>
                     </div>
                     <div class="icon">
@@ -74,7 +74,7 @@
             <div class="col-lg-4 col-6">
                 <div class="small-box bg-warning">
                     <div class="inner">
-                        <p>Số được sĩ đã nhận chứng chỉ</p>
+                        <p>Số dược sĩ đã nhận chứng chỉ</p>
                         <h3 id="getCertificatesYear">Loading...</h3>
                     </div>
                     <div class="icon">
@@ -85,103 +85,114 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Khóa học có cấp chứng nhận</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <div class="chart-row">
-                                <div id="certificate_month"></div>
-                                <div id="certificate_year"></div>
-                            </div>
-                            <div class="chart-legend">
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #4CAF50;"></span>
-                                    <span class="legend-text">Học viên đã đăng ký</span>
+        @if (Model.AvailableCourseTypes.Contains(0))
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Khóa học có cấp chứng chỉ</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <div class="chart-row">
+                                    <div id="certificate_month"></div>
+                                    <div id="certificate_year"></div>
                                 </div>
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #2196F3;"></span>
-                                    <span class="legend-text">Học viên đã học ít nhất 50% giờ học</span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #FFC107;"></span>
-                                    <span class="legend-text">Học viên đã hoàn thành khóa học</span>
+                                <div class="chart-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #4CAF50;"></span>
+                                        <span class="legend-text">Học viên đã đăng ký</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #2196F3;"></span>
+                                        <span class="legend-text">Học viên đã học ít nhất 50% giờ học</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #FFC107;"></span>
+                                        <span class="legend-text">Học viên đã hoàn thành khóa học</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Nội dung cập nhật kiến thức</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <div class="chart-row">
-                                <div id="update_month"></div>
-                                <div id="update_year"></div>
-                            </div>
-                            <div class="chart-legend">
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #4CAF50;"></span>
-                                    <span class="legend-text">Học viên đã xem</span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #2196F3;"></span>
-                                    <span class="legend-text">Học viên đã hoàn thành</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        }
 
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Khóa học không cấp chứng nhận</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <div class="chart-row">
-                                <div id="non_certificate_month"></div>
-                                <div id="non_certificate_year"></div>
-                            </div>
-                            <div class="chart-legend">
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #4CAF50;"></span>
-                                    <span class="legend-text">Học viên đã tham gia học</span>
+        @if (Model.AvailableCourseTypes.Contains(2))
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Khóa học không cấp chứng chỉ</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <div class="chart-row">
+                                    <div id="non_certificate_month"></div>
+                                    <div id="non_certificate_year"></div>
                                 </div>
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #2196F3;"></span>
-                                    <span class="legend-text">Học viên đã học ít nhất 50% giờ học</span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="legend-color" style="background-color: #FFC107;"></span>
-                                    <span class="legend-text">Học viên đã hoàn thành khóa học</span>
+                                <div class="chart-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #4CAF50;"></span>
+                                        <span class="legend-text">Học viên đã tham gia học</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #2196F3;"></span>
+                                        <span class="legend-text">Học viên đã học ít nhất 50% giờ học</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #FFC107;"></span>
+                                        <span class="legend-text">Học viên đã hoàn thành khóa học</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        }
     </div>
+
+        @if (Model.AvailableCourseTypes.Contains(1))
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Khóa học cập nhật kiến thức</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <div class="chart-row">
+                                    <div id="update_month"></div>
+                                    <div id="update_year"></div>
+                                </div>
+                                <div class="chart-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #4CAF50;"></span>
+                                        <span class="legend-text">Học viên đã xem</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #2196F3;"></span>
+                                        <span class="legend-text">Học viên đã hoàn thành</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+       
 </section>
 
 @section Scripts {
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script>
-        // Hàm fetch với timeout
         const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
             return Promise.race([
                 fetch(url, options),
@@ -191,10 +202,6 @@
             ]);
         };
 
-        async function fetchYearData() {
-            return await fetchData('/api/totalCertificatesCategory/year');
-        }
-        // Hàm lấy dữ liệu từ API
         const fetchData = async (url) => {
             try {
                 const response = await fetchWithTimeout(url);
@@ -209,12 +216,14 @@
             }
         };
 
-        // Hàm vẽ biểu đồ chứng chỉ
+        var availableCourseTypes = @Json.Serialize(Model.AvailableCourseTypes);
+
         async function drawCertificateCharts() {
+            if (!availableCourseTypes.includes(0)) return;
             try {
                 const [monthData, yearData] = await Promise.all([
                     fetchData('/api/totalCertificatesCategory/month'),
-                    fetchYearData()
+                    fetchData('/api/totalCertificatesCategory/year')
                 ]);
                 drawChart(monthData, 'certificate_month', 'Thống kê trong tháng');
                 drawChart(yearData, 'certificate_year', 'Thống kê trong năm');
@@ -224,7 +233,6 @@
                 document.getElementById('certificate_year').innerHTML = 'Error loading chart data: ' + error.message;
             }
         }
-        
 
         function drawChart(data, elementId, title) {
             if (!data || typeof data !== 'object') {
@@ -235,7 +243,7 @@
             const finishTime = data.finishTime ?? 0;
             var chartData = google.visualization.arrayToDataTable([
                 ['', 'Học viên đã đăng ký', 'Học viên đã học ít nhất 50% giờ học', 'Học viên đã hoàn thành khóa học'],
-                ['Khóa học có cấp chứng nhận', register, finishTime, finishCourse]
+                ['Khóa học có cấp chứng chỉ', register, finishTime, finishCourse]
             ]);
 
             var options = {
@@ -263,7 +271,9 @@
             var chart = new google.charts.Bar(document.getElementById(elementId));
             chart.draw(chartData, google.charts.Bar.convertOptions(options));
         }
+
         async function drawUpdateCharts() {
+            if (!availableCourseTypes.includes(1)) return;
             try {
                 const [monthData, yearData] = await Promise.all([
                     fetchData('/api/totalUpdateCategory/month'),
@@ -277,7 +287,7 @@
                 document.getElementById('update_year').innerHTML = 'Error loading chart data: ' + error.message;
             }
         }
-        // Hàm vẽ biểu đồ cập nhật
+
         function drawUpdateChart(data, elementId, title) {
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid data received');
@@ -309,11 +319,8 @@
             chart.draw(chartData, google.charts.Bar.convertOptions(options));
         }
 
-        
-        
-
-        // Hàm vẽ biểu đồ không chứng chỉ
         async function drawNonCertificateCharts() {
+            if (!availableCourseTypes.includes(2)) return;
             try {
                 const [monthData, yearData] = await Promise.all([
                     fetchData('/api/totalNonCertificatesCategory/month'),
@@ -322,12 +329,11 @@
                 drawNonCertificateChart(monthData, 'non_certificate_month', 'Thống kê trong tháng');
                 drawNonCertificateChart(yearData, 'non_certificate_year', 'Thống kê trong năm');
             } catch (error) {
-                console.error('Error drawing update charts:', error);
+                console.error('Error drawing non-certificate charts:', error);
                 document.getElementById('non_certificate_month').innerHTML = 'Error loading chart data: ' + error.message;
                 document.getElementById('non_certificate_year').innerHTML = 'Error loading chart data: ' + error.message;
             }
         }
-
 
         function drawNonCertificateChart(data, elementId, title) {
             if (!data || typeof data !== 'object') {
@@ -338,7 +344,7 @@
             const finishTime = data.finishTime ?? 0;
             var chartData = google.visualization.arrayToDataTable([
                 ['', 'Học viên đã tham gia học', 'Học viên đã học ít nhất 50% giờ học', 'Học viên đã hoàn thành khóa học'],
-                ['Khóa học không cấp chứng nhận', study, finishTime , finishCourse]
+                ['Khóa học không cấp chứng chỉ', study, finishTime, finishCourse]
             ]);
 
             var options = {
@@ -367,7 +373,6 @@
             chart.draw(chartData, google.charts.Bar.convertOptions(options));
         }
 
-        // Hàm cập nhật số lượng người tham gia
         async function updateParticipantCount() {
             try {
                 const monthData = await fetchData('@Url.Action("GetParticipantCountForMonth", "Home")');
@@ -376,25 +381,12 @@
                 const yearData = await fetchData('@Url.Action("GetParticipantCountForYear", "Home")');
                 $('#totalParticipantsYear').text(yearData);
             } catch (error) {
-                console.error('Error updating participant count:', error); 
+                console.error('Error updating participant count:', error);
                 $('#totalParticipantsMonth').text('Error loading data');
                 $('#totalParticipantsYear').text('Error loading data');
             }
         }
 
-        // Hàm cập nhật tổng số chứng chỉ
-        async function updateTotalCertificates() {
-            try {
-                const data = await fetchData('/api/totalCertificatesCategory/month');
-                console.log('Total certificates data:', data);
-                $('#totalCertificatesCategoryMonth').text(data.FinishSurvey || 'N/A');
-            } catch (error) {
-                console.error('Error fetching total certificates:', error);
-                $('#totalCertificatesCategoryMonth').text('Error loading data');
-            }
-        }
-
-        // Hàm cập nhật số khóa học đã hoàn thành
         async function updateCompletedCoursesCount() {
             try {
                 const monthData = await fetchData('@Url.Action("GetCompletedCoursesForMonth", "Home")');
@@ -408,7 +400,7 @@
                 $('#completedCoursesYear').text('Error loading data');
             }
         }
-        // Hàm cập nhật tổng số người nhận chứng chỉ
+
         async function updateTotalUserGetCertificates() {
             try {
                 const monthData = await fetchData('@Url.Action("GetTotalUsersGetCertificatesForMonth", "Home")');
@@ -423,7 +415,6 @@
             }
         }
 
-        // Hàm cập nhật phạm vi ngày
         function updateDateRanges() {
             const formatDate = (date) => {
                 return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
@@ -437,46 +428,51 @@
             $('#yearDateRange').text(`${formatDate(firstDayOfYear)} - ${formatDate(now)}`);
         }
 
-        // Hàm khởi tạo
         async function initialize() {
             try {
                 updateDateRanges();
                 await Promise.all([
                     updateParticipantCount(),
-                    updateTotalCertificates(),
                     updateCompletedCoursesCount(),
                     updateTotalUserGetCertificates()
                 ]);
                 google.charts.load('current', { 'packages': ['bar'] });
                 google.charts.setOnLoadCallback(() => {
-                    drawCertificateCharts();
-                    drawUpdateCharts();
-                    drawNonCertificateCharts();
+                    if (availableCourseTypes.includes(0)) {
+                        drawCertificateCharts();
+                    }
+                    if (availableCourseTypes.includes(1)) {
+                        drawUpdateCharts();
+                    }
+                    if (availableCourseTypes.includes(2)) {
+                        drawNonCertificateCharts();
+                    }
                 });
             } catch (error) {
                 console.error('Error during initialization:', error);
             }
         }
-            $(document).ready(function () {
-                $('#logoutButton').click(function (e) {
-                    e.preventDefault();
-                    $.ajax({
-                        url: '@Url.Action("Logout", "Account")',
-                        type: 'POST',
-                        success: function (result) {
-                            if (result.success) {
-                                window.location.href = result.redirectUrl;
-                            } else {
-                                console.log('Logout failed');
-                            }
-                        },
-                        error: function (error) {
-                            console.log('Logout error:', error);
+
+        $(document).ready(function () {
+            initialize();
+
+            $('#logoutButton').click(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '@Url.Action("Logout", "Account")',
+                    type: 'POST',
+                    success: function (result) {
+                        if (result.success) {
+                            window.location.href = result.redirectUrl;
+                        } else {
+                            console.log('Logout failed');
                         }
-                    });
+                    },
+                    error: function (error) {
+                        console.log('Logout error:', error);
+                    }
                 });
             });
-        // Khởi chạy khi DOM đã sẵn sàng
-        $(document).ready(initialize);
+        });
     </script>
 }

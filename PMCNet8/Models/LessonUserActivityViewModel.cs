@@ -8,6 +8,6 @@
         public string DiaChi { get; set; }
         public string DonViCongTac { get; set; }
         public string HanhDong { get; set; }
-        public string Ngay { get; set; }
+        public DateTime Ngay { get; set; }
     }
 }

@@ -75,7 +75,7 @@
             today = dd + '/' + mm + '/' + yyyy;
             $('#endDate').val(today);
         }
-
+        $('#logoutButton').click(handleLogout);
         function setupEventHandlers() {
             $('#viewButton').click(function () {
                 var startDate = $('#startDate').val();
@@ -235,6 +235,23 @@
             ctx.textAlign = 'center';
             ctx.fillStyle = '#000';
             ctx.fillText('Không có dữ liệu để hiển thị', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        }
+        function handleLogout(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '@Url.Action("Logout", "Account")',
+                type: 'POST',
+                success: function (result) {
+                    if (result.success) {
+                        window.location.href = result.redirectUrl;
+                    } else {
+                        console.log('Logout failed');
+                    }
+                },
+                error: function (error) {
+                    console.log('Logout error:', error);
+                }
+            });
         }
 
     </script>

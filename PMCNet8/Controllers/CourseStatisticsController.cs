@@ -36,7 +36,7 @@ public class CourseStatisticsController : Controller
         {
             model.SelectedCourseId = courseId.Value;
             model.CourseInfo = await GetCourseInfoAsync(courseId.Value);
-            model.UnregisteredPharmacists = (await GetRegisteredPharmacistAsync(courseId.Value)).ToList();
+            model.UnregisteredPharmacists = (await GetCompletedPharmacistsAsync(courseId.Value)).ToList();
             model.AchieveTargets = await GetAchieveTargetsAsync(courseId.Value);
         }
         if (model.AchieveTargets == null)
@@ -55,7 +55,7 @@ public class CourseStatisticsController : Controller
         {
             model.SelectedCourseId = model.CourseListItems.First().Id;
             model.CourseInfo = await GetCourseInfoAsync(model.SelectedCourseId);
-            model.UnregisteredPharmacists = (await GetRegisteredPharmacistAsync(model.SelectedCourseId)).ToList();
+            model.UnregisteredPharmacists = (await GetCompletedPharmacistsAsync(model.SelectedCourseId)).ToList();
         }
 
         return View(model);
@@ -158,34 +158,21 @@ public class CourseStatisticsController : Controller
     }
 
 
-    private async Task<IEnumerable<UnregisteredPharmacistViewModel>> GetRegisteredPharmacistAsync(Guid courseId)
+    private async Task<IEnumerable<UnregisteredPharmacistViewModel>> GetCompletedPharmacistsAsync(Guid courseId)
     {
         try
         {
-            // Lấy tất cả các lessonId (TopicId) của khóa học
-            var lessonIds = await _mediHub4RumContext.Topic
-                .Where(t => t.Category_Id == courseId)
-                .Select(t => t.Id)
+            var userCompletions = await _mediHub4RumContext.SponsorHubCourseFinish
+                .Where(e => e.CategoryId == courseId && e.IsPassed == true)
+                .Select(e => new { e.UserId, e.FinishDate })
+                .Distinct()
                 .ToListAsync();
 
-            if (!lessonIds.Any())
-            {
-                _logger.LogWarning($"No lessons found for courseId: {courseId}");
-                return new List<UnregisteredPharmacistViewModel>();
-            }
-
-            // Lấy thông tin từ LogLesson cho tất cả các bài học
-            var userQuery = _logActionDbContext.LogLesson
-                .Where(ll => lessonIds.Contains(ll.TopicId));
-            var userLessons = await userQuery
-                .Select(ll => new { ll.UserId, ll.Status, ll.Result, ll.DateAccess })
-                .ToListAsync();
-
-            var userIds = userLessons.Select(ul => ul.UserId).Distinct().ToList();
+            var userIds = userCompletions.Select(uc => uc.UserId).ToList();
 
             // Lấy thông tin người dùng
             var users = await _mediHub4RumContext.MembershipUser
-                .Where(mu => userIds.Contains(mu.Id)&& mu.IsTest == false)
+                .Where(mu => userIds.Contains(mu.Id) && mu.IsTest == false)
                 .ToListAsync();
 
             // Lấy thông tin AppSetup
@@ -193,10 +180,10 @@ public class CourseStatisticsController : Controller
                 .Where(app => users.Select(u => u.KeyCodeActive).Contains(app.KeyCodeActive))
                 .ToListAsync();
 
-            var registeredPharmacists = users.Select(user =>
+            var completedPharmacists = users.Select(user =>
             {
                 var appSetup = appSetups.FirstOrDefault(app => app.KeyCodeActive == user.KeyCodeActive);
-                var userLesson = userLessons.FirstOrDefault(ul => ul.UserId == user.Id);
+                var completion = userCompletions.FirstOrDefault(uc => uc.UserId == user.Id);
                 return new UnregisteredPharmacistViewModel
                 {
                     TenDuocSi = appSetup?.SCName ?? user.UserName,
@@ -204,7 +191,8 @@ public class CourseStatisticsController : Controller
                     DonViCongTac = appSetup?.DrugName ?? "",
                     DiaChi = appSetup?.Address ?? "",
                     DaXacThuc = false,
-                    KeyCodeActive = appSetup?.KeyCodeActive ?? ""
+                    KeyCodeActive = appSetup?.KeyCodeActive ?? "",
+                    NgayHoanThanh = completion.FinishDate,
                 };
             }).ToList();
 
@@ -214,7 +202,7 @@ public class CourseStatisticsController : Controller
                 .Select(mui => new { mui.UserId, mui.TrangThai })
                 .ToListAsync();
 
-            foreach (var pharmacist in registeredPharmacists)
+            foreach (var pharmacist in completedPharmacists)
             {
                 var user = users.FirstOrDefault(u => u.KeyCodeActive == pharmacist.KeyCodeActive);
                 if (user != null)
@@ -224,11 +212,16 @@ public class CourseStatisticsController : Controller
                 }
             }
 
-            return registeredPharmacists;
+            // Sắp xếp danh sách theo ngày hoàn thành từ mới nhất đến cũ nhất
+            completedPharmacists = completedPharmacists
+                .OrderByDescending(p => p.NgayHoanThanh)
+                .ToList();
+
+            return completedPharmacists;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred in GetRegisteredPharmacistAsync for courseId: {CourseId}", courseId);
+            _logger.LogError(ex, "Unexpected error occurred in GetCompletedPharmacistsAsync for courseId: {CourseId}", courseId);
             throw;
         }
     }
@@ -238,7 +231,7 @@ public class CourseStatisticsController : Controller
     {
         try
         {
-            var result = await GetRegisteredPharmacistAsync(courseId);
+            var result = await GetCompletedPharmacistsAsync(courseId);
             return Ok(result);
         }
         catch (Exception ex)
@@ -248,80 +241,6 @@ public class CourseStatisticsController : Controller
         }
     }
 
-    //private async Task<AchieveTargetsViewModel> GetAchieveTargetsAsync(Guid courseId)
-    //{
-    //    var check = await _logActionDbContext.LogClickCourse
-    //            .AsNoTracking()
-    //            .AnyAsync(e => e.CourseId == courseId);
-    //    if (!check) return new AchieveTargetsViewModel();
-
-    //    try
-    //    {
-    //        var timeAndTarget = await _mediHub4RumContext.SponsorHubCourse
-    //            .Where(e => e.CategoryId == courseId)
-    //            .Select(e => new AchieveTargetsViewModel
-    //            {
-    //                TargetStartDate = e.TargetStartDate,
-    //                TargetEndDate = e.TargetEndDate,
-    //                TargetFinish = e.TargetFinish,
-    //                TargetJoin = e.TargetJoin,
-    //            })
-    //            .FirstOrDefaultAsync();
-
-    //        if (timeAndTarget == null) timeAndTarget = new AchieveTargetsViewModel();
-
-    //        var day1 = timeAndTarget.TargetStartDate = await _logActionDbContext.LogClickCourse
-    //            .AsNoTracking()
-    //            .Where(e => e.CourseId == courseId)
-    //            .MinAsync(e => e.CreatedDate.Date);
-
-    //        var day5 = timeAndTarget.TargetEndDate = await _logActionDbContext.LogClickCourse
-    //            .AsNoTracking()
-    //            .Where(e => e.CourseId == courseId)
-    //            .MaxAsync(e => e.CreatedDate.Date);
-    //        day5 = day5.Value.AddDays(1).AddMilliseconds(-1);
-
-
-    //        timeAndTarget.TotalJoins = new Dictionary<DateTime, int>();
-    //        timeAndTarget.TotalJoins[day1.Value] = 0;
-    //        timeAndTarget.TotalJoins[day5.Value] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day5).Select(e => e.UserId).Distinct().CountAsync();
-
-    //        timeAndTarget.TotalFinishs = new Dictionary<DateTime, int>();
-    //        timeAndTarget.TotalFinishs[day1.Value] = 0;
-    //        timeAndTarget.TotalFinishs[day5.Value] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day5).Select(e => e.UserId).Distinct().CountAsync();
-
-    //        if (timeAndTarget.TargetStartDate.Value != timeAndTarget.TargetEndDate.Value)
-    //        {
-    //            var totalDays = (timeAndTarget.TargetEndDate - timeAndTarget.TargetStartDate).Value.Days;
-    //            var middle1 = totalDays / 2;
-    //            var middle2 = middle1 / 2;
-
-    //            var day2 = timeAndTarget.TargetStartDate.Value.AddDays(middle2);
-    //            var day3 = timeAndTarget.TargetStartDate.Value.AddDays(middle1);
-    //            var day4 = timeAndTarget.TargetStartDate.Value.AddDays(middle1 + middle2);
-
-    //            timeAndTarget.TotalJoins[day2] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day2).Select(e => e.UserId).Distinct().CountAsync();
-    //            timeAndTarget.TotalJoins[day3] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day3).Select(e => e.UserId).Distinct().CountAsync();
-    //            timeAndTarget.TotalJoins[day4] = await _logActionDbContext.LogClickCourse.AsNoTracking().Where(e => e.CourseId == courseId && day1 <= e.CreatedDate && e.CreatedDate < day4).Select(e => e.UserId).Distinct().CountAsync();
-
-    //            timeAndTarget.TotalFinishs[day2] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day2).Select(e => e.UserId).Distinct().CountAsync();
-    //            timeAndTarget.TotalFinishs[day3] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day3).Select(e => e.UserId).Distinct().CountAsync();
-    //            timeAndTarget.TotalFinishs[day4] = await _mediHub4RumContext.SponsorHubCourseFinish.AsNoTracking().Where(e => e.CategoryId == courseId && day1 <= e.FinishDate && e.FinishDate < day4).Select(e => e.UserId).Distinct().CountAsync();
-    //        }
-
-    //        return timeAndTarget;
-    //    }
-    //    catch (SqlException sqlEx)
-    //    {
-    //        _logger.LogError(sqlEx, "SQL error occurred in GetAchieveTargetsAsync for courseId: {CourseId}", courseId);
-    //        throw new ApplicationException("An error occurred while retrieving data from the database.", sqlEx);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Unexpected error occurred in GetAchieveTargetsAsync for courseId: {CourseId}", courseId);
-    //        throw new ApplicationException("An unexpected error occurred while processing your request.", ex);
-    //    }
-    //}
     private async Task<AchieveTargetsViewModel> GetAchieveTargetsAsync(Guid courseId)
     {
         var result = new AchieveTargetsViewModel();
@@ -351,21 +270,21 @@ public class CourseStatisticsController : Controller
             // Nếu không có dữ liệu trong SponsorHubCourse, lấy từ LogClickCourse
             if (!result.TargetStartDate.HasValue || !result.TargetEndDate.HasValue)
             {
-                var logDates = await _logActionDbContext.LogClickCourse
-                    .Where(e => e.CourseId == courseId)
-                    .Select(e => e.CreatedDate)
-                    .ToListAsync();
+                var logDates = await _mediHub4RumContext.Category
+                    .Where(e => e.Id == courseId)
+                    .Select(e => e.DateCreated)
+                    .FirstOrDefaultAsync();
 
-                if (logDates.Any())
+                if (logDates != null)
                 {
-                    result.TargetStartDate = logDates.Min().Date;
-                    result.TargetEndDate = logDates.Max().Date.AddDays(1).AddMilliseconds(-1);
+                    result.TargetStartDate = logDates;
+                    result.TargetEndDate = DateTime.Now.Date;
                 }
                 else
                 {
                     // Nếu không có dữ liệu, sử dụng ngày hiện tại
                     result.TargetStartDate = DateTime.Now.Date;
-                    result.TargetEndDate = DateTime.Now.Date.AddDays(30);
+                    result.TargetEndDate = DateTime.Now.Date;
                 }
             }
 
@@ -384,13 +303,7 @@ public class CourseStatisticsController : Controller
 
             foreach (var point in timePoints)
             {
-                // Tính tổng số người vào khóa học 
-                result.TotalJoins[point] = await _logActionDbContext.LogClickCourse
-                    .Where(e => e.CourseId == courseId && e.CreatedDate < point)
-                    .Select(e => e.UserId)
-                    .Distinct()
-                    .CountAsync();
-
+              
                 // Tính tổng số người hoàn thành đến thời điểm này (không phân biệt đạt/không đạt)
                 result.TotalFinishs[point] = await _mediHub4RumContext.SponsorHubCourseFinish
                     .Where(e => e.CategoryId == courseId && e.FinishDate < point)
@@ -472,7 +385,7 @@ public class CourseStatisticsController : Controller
 
         model.SelectedCourseId = courseId;
         model.CourseInfo = await GetCourseInfoAsync(courseId);
-        model.UnregisteredPharmacists = (await GetRegisteredPharmacistAsync(courseId)).ToList();
+        model.UnregisteredPharmacists = (await GetCompletedPharmacistsAsync(courseId)).ToList();
         model.AchieveTargets = await GetAchieveTargetsAsync(courseId);
 
         return PartialView("_CourseStatistics", model);

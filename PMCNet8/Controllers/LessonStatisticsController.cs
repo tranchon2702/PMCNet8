@@ -115,27 +115,28 @@ namespace PMCNet8.Controllers
         private async Task<ChartLessonViewModel> GetChartDataAsync(Guid lessonId, DateTime? parsedStartDate, DateTime? parsedEndDate)
         {
             var query = _logActionDbContext.LogLesson
-             .Where(ll => ll.TopicId == lessonId);
+                .Where(ll => ll.TopicId == lessonId);
 
             if (parsedStartDate.HasValue)
                 query = query.Where(ll => ll.DateAccess.Date >= parsedStartDate.Value.Date);
             if (parsedEndDate.HasValue)
                 query = query.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
 
-            var lessonLogs = await query.ToListAsync();
+            var logLessons = await query.ToListAsync();
+
             var listQuestions = await _mediHub4RumContext.MediHubSCQuiz
                 .Where(t => t.TopicId == lessonId)
                 .Select(t => t.QuizQuestions)
-                .Distinct()
                 .FirstOrDefaultAsync();
+
             var questions = JsonConvert.DeserializeObject<List<LessonQuestion>>(listQuestions ?? string.Empty);
 
             return new ChartLessonViewModel
             {
-                Joins = lessonLogs.Count(l => l.Status == "Access"),
-                CompletedLesson = lessonLogs.Count(l => l.Status == "Completed"),
-                CompleteTest = lessonLogs.Count(l => l.Status == "PostTest" && IsPassingScore(l.Result)),
-                FailedTest = lessonLogs.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result)),
+                Joins = logLessons.Select(ll => ll.UserId).Distinct().Count(userId => logLessons.Any(l => l.UserId == userId && l.Status == "Access")),
+                CompletedLesson = logLessons.Select(ll => ll.UserId).Distinct().Count(userId => logLessons.Any(l => l.UserId == userId && l.Status == "Finish")),
+                CompleteTest = logLessons.Count(l => l.Status == "PostTest" && IsPassingScore(l.Result)),
+                FailedTest = logLessons.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result)),
                 TotalQuestions = questions?.Count ?? 0
             };
         }
@@ -144,24 +145,20 @@ namespace PMCNet8.Controllers
         {
             var userQuery = _logActionDbContext.LogLesson
                 .Where(ll => ll.TopicId == lessonId);
-
             if (parsedStartDate.HasValue)
                 userQuery = userQuery.Where(ll => ll.DateAccess.Date >= parsedStartDate.Value.Date);
             if (parsedEndDate.HasValue)
                 userQuery = userQuery.Where(ll => ll.DateAccess.Date <= parsedEndDate.Value.Date);
-
             var userLessons = await userQuery.Select(ll => new { ll.UserId, ll.Status, ll.Result, ll.DateAccess }).ToListAsync();
             var userIds = userLessons.Select(ul => ul.UserId).Distinct().ToList();
-
             var users = await _mediHub4RumContext.MembershipUser
                 .Where(mu => userIds.Contains(mu.Id) && mu.IsTest == false)
                 .ToListAsync();
-
             var appSetups = await _mediHubSCAppContext.AppSetup
                 .Where(app => users.Select(u => u.KeyCodeActive).Contains(app.KeyCodeActive))
                 .ToListAsync();
 
-            return users.Select(user =>
+            var result = users.Select(user =>
             {
                 var appSetup = appSetups.FirstOrDefault(app => app.KeyCodeActive == user.KeyCodeActive);
                 var userLesson = userLessons.FirstOrDefault(ul => ul.UserId == user.Id);
@@ -172,10 +169,12 @@ namespace PMCNet8.Controllers
                     Email = user.Email,
                     DiaChi = appSetup?.Address ?? "",
                     DonViCongTac = appSetup?.DrugName ?? "",
-                    HanhDong = GetActivityStatus(userLesson?.Status, IsPassingScore(userLesson?.Result)),
-                    Ngay = userLesson?.DateAccess.ToString("dd/MM/yyyy HH:mm") ?? ""
+                    HanhDong = GetActivityStatus(userLesson.Status, IsPassingScore(userLesson.Result)),
+                    Ngay = userLesson.DateAccess,
                 };
             }).ToList();
+
+            return result.OrderByDescending(r => r.Ngay).ToList();
         }
 
         private bool IsPassingScore(string result)
@@ -198,7 +197,7 @@ namespace PMCNet8.Controllers
             return status switch
             {
                 "Access" => "Vào bài học",
-                "Completed" => "Đã học xong bài học",
+                "Finish" => "Đã học xong bài học",
                 "PostTest" when isPassing => "Đã làm bài tập-Đạt",
                 "PostTest" when !isPassing => "Đã làm bài tập-Chưa đạt",
                 _ => "Không xác định"

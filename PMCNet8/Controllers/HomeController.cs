@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using PMCNet8.Models;
+using System.Runtime.ConstrainedExecution;
 
 
 namespace PMCNet8.Controllers
@@ -26,10 +27,27 @@ namespace PMCNet8.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            HomeViewModel model = new HomeViewModel();
+            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            {
+                return BadRequest("Invalid SponsorId");
+            }
+
+            var model = new HomeViewModel
+            {
+                AvailableCourseTypes = await GetAvailableCourseTypesAsync(sponsorId)
+            };
             return View(model);
+        }
+
+        private async Task<List<int>> GetAvailableCourseTypesAsync(Guid sponsorId)
+        {
+            return await _mediHub4RumContext.SponsorHubCourse
+                .Where(shc => shc.SponsorId == sponsorId)
+                .Select(shc => shc.CourseType)
+                .Distinct()
+                .ToListAsync();
         }
 
         [HttpGet("api/participantCount/month")]
@@ -186,11 +204,23 @@ namespace PMCNet8.Controllers
 
             try
             {
+               
 
-                model.Watched = await _mediHub4RumContext.MediHubScQuizResult
-                    .Where(e => e.Topic.Category.HubCourse != null && e.Topic.Category.HubCourse.SponsorId == sponsorId
-                    && firstDayOfMonth <= e.DateAdded && e.DateAdded <= now)
-                    .Select(e => e.KeyAppActive)
+                var categoryIds = await _mediHub4RumContext.SponsorHubCourse
+                    .Where(e => e.Category.HubCourse.CourseType == 1
+                                && e.Category.HubCourse.SponsorId == sponsorId)
+                    .Select(e => e.CategoryId)
+                    .ToListAsync();
+
+                var lessonIds = await _mediHub4RumContext.Topic
+                     .Where(t =>  categoryIds.Contains(t.Category_Id))
+                     .Select(t => t.Id)
+                     .ToListAsync();
+
+                model.Watched = await _logActionContext.LogLesson
+                    .Where(e => lessonIds.Contains ( e.TopicId) 
+                    && firstDayOfMonth <= e.DateAccess && e.DateAccess <= now)
+                    .Select(e => e.UserId)
                     .Distinct()
                     .CountAsync();
 
@@ -219,14 +249,23 @@ namespace PMCNet8.Controllers
 
             try
             {
+                var categoryIds = await _mediHub4RumContext.SponsorHubCourse
+                    .Where(e => e.Category.HubCourse.CourseType == 1
+                                && e.Category.HubCourse.SponsorId == sponsorId)
+                    .Select(e => e.CategoryId)
+                    .ToListAsync();
 
-                model.Watched = await _mediHub4RumContext.MediHubScQuizResult
-                    .Where(e => e.Topic.Category.HubCourse != null && e.Topic.Category.HubCourse.SponsorId == sponsorId
-                    && firstDayOfYear <= e.DateAdded && e.DateAdded <= now)
-                    .Select(e => e.KeyAppActive)
+                var lessonIds = await _mediHub4RumContext.Topic
+                     .Where(t => categoryIds.Contains(t.Category_Id))
+                     .Select(t => t.Id)
+                     .ToListAsync();
+
+                model.Watched = await _logActionContext.LogLesson
+                    .Where(e => lessonIds.Contains(e.TopicId)
+                    && firstDayOfYear <= e.DateAccess && e.DateAccess <= now)
+                    .Select(e => e.UserId)
                     .Distinct()
                     .CountAsync();
-
                 model.Finish = await _mediHub4RumContext.SponsorHubCourseFinish
                         .Where(cfr => cfr.Category.HubCourse != null &&
                                       cfr.Category.HubCourse.SponsorId == sponsorId &&
@@ -415,8 +454,8 @@ namespace PMCNet8.Controllers
 
             try
             {
-
                 
+
                 // Lấy danh sách CategoryId của Sponsor
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
                     .Where(shc => shc.SponsorId == sponsorId)
@@ -428,7 +467,7 @@ namespace PMCNet8.Controllers
                  .ToListAsync();
                 // Đếm số lượng UserId duy nhất
                 return await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId)
+                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
                              && x.DateAccess.Year == currentYear
                              && x.DateAccess.Month == currentMonth)
                     .Select(x => x.UserId)
@@ -459,7 +498,7 @@ namespace PMCNet8.Controllers
                  .ToListAsync();
                 // Đếm số lượng UserId duy nhất
                 return await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId)
+                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
                              && x.DateAccess.Year == currentYear)
                     .Select(x => x.UserId)
                     .Distinct()
