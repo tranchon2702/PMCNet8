@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PMCNet8.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PMCNet8.Controllers
 {
@@ -41,10 +43,18 @@ namespace PMCNet8.Controllers
         {
             if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
             {
-                return BadRequest("Invalid SponsorId");
+                //return BadRequest("Invalid SponsorId");
+                return RedirectToAction("Login", "Account");
             }
 
-            var courses = await GetCoursesAsync(sponsorId);
+            var courses = await _mediHub4RumContext.SponsorHubCourse
+               .Where(shc => shc.SponsorId == sponsorId)
+               .Select(shc => new CourseListItems
+               {
+                   Id = shc.CategoryId,
+                   Name = shc.Category.Name
+               })
+               .ToListAsync();
 
             // Get the first course ID to load initial data
             var firstCourseId = courses.FirstOrDefault()?.Id;
@@ -75,10 +85,36 @@ namespace PMCNet8.Controllers
 
                 var topics = await _mediHub4RumContext.Topic
                     .Where(t => t.Category_Id == courseId)
-                    .Select(t => new TopicInfo { Id = t.Id, Name = t.Name , Order = t.Order })
+                    .OrderBy(t => t.Order)
+                    .Select(t => new TopicInfo { Id = t.Id, Name = t.Name })
                     .ToListAsync();
 
-                var chartData = await GetChartDataAsync(topics, parsedStartDate, parsedEndDate);
+                // chart
+                var chartData = new List<ChartDataViewModel>();
+                foreach (var topic in topics)
+                {
+                    var query = _logActionDbContext.LogLesson.Where(ll => ll.TopicId == topic.Id);
+                    if (parsedStartDate.HasValue && parsedEndDate.HasValue)
+                    {
+                        query = query.Where(ll => ll.DateAccess.Date >= parsedStartDate.Value.Date && ll.DateAccess.Date <= parsedEndDate.Value.Date);
+                    }
+                    var topicLogs = await query.ToListAsync();
+
+                    var lesson = new ChartDataViewModel
+                    {
+                        Lesson = topic.Name,
+                        Joins = topicLogs.Select(l => l.UserId).Distinct().Count(userId => topicLogs.Any(l => l.UserId == userId)),
+                        CompleteTest = topicLogs.Where(l => l.Status == "PostTest").Select(ll => ll.UserId).Distinct().Count(),
+                        //FailedTest = topicLogs.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result))
+                    };
+                    if (lesson.Joins < lesson.CompleteTest) lesson.CompleteTest = lesson.Joins;
+                    lesson.FailedTest = lesson.Joins - lesson.CompleteTest;
+
+                    chartData.Add(lesson);
+                }
+
+
+                // table
                 var tableData = await GetTableDataAsync(courseId, parsedStartDate, parsedEndDate);
 
                 var model = new CourseActivityViewModel
@@ -99,72 +135,29 @@ namespace PMCNet8.Controllers
             }
         }
 
-        private async Task<List<CourseListItems>> GetCoursesAsync(Guid sponsorId)
-        {
-            return await _mediHub4RumContext.SponsorHubCourse
-                .Where(shc => shc.SponsorId == sponsorId)
-                .Select(shc => new CourseListItems
-                {
-                    Id = shc.CategoryId,
-                    Name = shc.Category.Name
-                })
-                .ToListAsync();
-        }
-
-       
-        private async Task<List<ChartDataViewModel>> GetChartDataAsync(List<TopicInfo> topics, DateTime? startDate, DateTime? endDate)
-        {
-            
-            topics = topics.OrderBy(t => t.Order).ToList();
-
-            var chartData = new List<ChartDataViewModel>();
-            foreach (var topic in topics)
-            {
-                var query = _logActionDbContext.LogLesson.Where(ll => ll.TopicId == topic.Id);
-                if (startDate.HasValue && endDate.HasValue)
-                {
-                    query = query.Where(ll => ll.DateAccess.Date >= startDate.Value.Date && ll.DateAccess.Date <= endDate.Value.Date);
-                }
-
-                var topicLogs = await query.ToListAsync();
-
-                chartData.Add(new ChartDataViewModel
-                {
-                    Lesson = topic.Name,
-                    Joins = topicLogs.Select(l => l.UserId).Distinct().Count(userId => topicLogs.Any(l => l.UserId == userId && l.Status == "Access")),
-                    CompleteTest = topicLogs.Count(l => l.Status == "PostTest" && IsPassingScore(l.Result)),
-                    FailedTest = topicLogs.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result))
-                });
-            }
-            return chartData;
-        }
         private async Task<List<CourseActivityViewModel>> GetTableDataAsync(Guid courseId, DateTime? startDate, DateTime? endDate)
         {
             var query = _mediHub4RumContext.SponsorHubCourseFinish
                 .Where(e => e.CategoryId == courseId);
-
             if (startDate.HasValue && endDate.HasValue)
             {
                 query = query.Where(e => e.FinishDate.Date >= startDate.Value.Date && e.FinishDate.Date <= endDate.Value.Date);
             }
-
-            var userCompletions = await query.Select(e => e.UserId).ToListAsync();
-
+            var userCompletions = await query.Select(e => new { e.UserId, e.IsPassed, e.FinishDate }).ToListAsync();
+            var userIds = userCompletions.Select(e => e.UserId).ToList();
             var users = await _mediHub4RumContext.MembershipUser
-                .Where(mu => userCompletions.Contains(mu.Id)&& mu.IsTest == false)
+                .Where(mu => userIds.Contains(mu.Id) && mu.IsTest == false)
                 .ToListAsync();
-
             var appSetups = await _mediHubSCAppContext.AppSetup
                 .Where(app => users.Select(u => u.KeyCodeActive).Contains(app.KeyCodeActive))
                 .ToListAsync();
-
             var topicCount = await _mediHub4RumContext.Topic
                 .Where(t => t.Category_Id == courseId)
                 .CountAsync();
-
-            return users.Select(user =>
+            var result = users.Select(user =>
             {
                 var appSetup = appSetups.FirstOrDefault(app => app.KeyCodeActive == user.KeyCodeActive);
+                var userCompletion = userCompletions.FirstOrDefault(e => e.UserId == user.Id);
                 return new CourseActivityViewModel
                 {
                     TenDuocSi = appSetup?.SCName ?? user.UserName,
@@ -172,9 +165,12 @@ namespace PMCNet8.Controllers
                     Email = user.Email,
                     DiaChi = appSetup?.Address ?? "",
                     DonViCongTac = appSetup?.DrugName ?? "",
-                    KetQua = $"{topicCount}/{topicCount}"
+                    KetQua = userCompletion?.IsPassed == true ? "Đạt" : "Không đạt",
+                    NgayHoanThanh = userCompletion.FinishDate
                 };
             }).ToList();
+
+            return result.OrderByDescending(r => r.NgayHoanThanh).ToList();
         }
 
         private bool IsPassingScore(string result)

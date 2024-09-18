@@ -34,6 +34,7 @@
                             <th>Địa chỉ</th>
                             <th>Đơn vị công tác</th>
                             <th>Kết quả</th>
+                            <th>Ngày hoàn thành</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -46,6 +47,7 @@
                                 <td>@item.DiaChi</td>
                                 <td>@item.DonViCongTac</td>
                                 <td>@item.KetQua</td>
+                                <td>@item.NgayHoanThanh.ToString("dd/MM/yyyy HH:mm")</td>
                             </tr>
                         }
                     </tbody>
@@ -79,19 +81,19 @@
                     {
                         label: 'Học viên đã tham gia học',
                         data: chartData.map(item => item.joins),
-                        backgroundColor: 'rgba(75, 192, 192, 0.8)'
-                    },
+                        backgroundColor: '#28a745'
+                    }, 
                     {
                         label: 'Học viên đã làm bài tập - Đạt',
                         data: chartData.map(item => item.completeTest),
-                        backgroundColor: 'rgba(54, 162, 235, 0.8)'
+                        backgroundColor: '#007bff'
                     },
                     {
                         label: 'Học viên đã làm bài tập - Chưa đạt',
                         data: chartData.map(item => item.failedTest),
-                        backgroundColor: 'rgba(255, 206, 86, 0.8)'
+                        backgroundColor: '#6c757d'
                     }
-                ]
+                ]    
             },
             options: {
                 responsive: true,

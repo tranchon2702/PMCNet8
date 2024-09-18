@@ -22,9 +22,14 @@
                         <div class="input-group">
                             <span class="input-group-text">Bài học</span>
                             <select id="lessonSelect" class="form-control">
-                                @foreach (var lesson in Model)
+                                @foreach (var courseId in Model.Select(e => e.CourseId).Distinct().ToList())
                                 {
-                                    <option value="@lesson.Id" data-course="@lesson.CourseName">@lesson.Name</option>
+                                    <optgroup label="@Model.First(e => e.CourseId == courseId).CourseName">
+                                    @foreach (var lesson in Model.Where(e => e.CourseId == courseId).ToList())
+                                    {
+                                        <option value="@lesson.Id" data-course="@lesson.CourseName">@lesson.Name</option>
+                                    }
+                                    </optgroup>
                                 }
                             </select>
 
@@ -66,25 +71,25 @@
 
         $(document).ready(function () {
             initializePage();
-            loadInitialData();
             setupEventHandlers();
         });
 
         function initializePage() {
-            $('#lessonSelect').select2();
+            $('#lessonSelect').select2({
+                placeholder: "Chọn khóa học hoặc bài học"
+            });
             flatpickr(".flatpickr", {
                 dateFormat: "d/m/Y",
                 allowInput: true,
                 locale: "vn"
             });
-
             updateCourseName();
         }
 
         function updateCourseName() {
             var selectedOption = $('#lessonSelect option:selected');
             var courseName = selectedOption.data('course');
-            $('#courseName').text(courseName);
+            $('#courseName').text(courseName || '');
         }
 
         function setupEventHandlers() {
@@ -93,17 +98,20 @@
             $('#logoutButton').click(handleLogout);
         }
 
-        function loadInitialData() {
-            var lessonId = $('#lessonSelect').val();
-            loadData(lessonId);
-        }
-
         function onLessonChange() {
-            var lessonId = $('#lessonSelect').val();
+            var selectedOption = $('#lessonSelect option:selected');
+            var lessonId = selectedOption.val();
             $('#startDate').val('');
             $('#endDate').val('');
             updateCourseName();
-            loadData(lessonId);
+
+            if (lessonId && !selectedOption.is(':disabled')) {
+                loadData(lessonId);
+                $('#viewButton').prop('disabled', false);
+            } else {
+                $('#lessonStatisticsContainer').empty();
+                $('#viewButton').prop('disabled', true);
+            }
         }
 
         function loadData(lessonId) {
@@ -121,8 +129,8 @@
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
 
-            if (!startDate || !endDate) {
-                alert('Vui lòng chọn cả ngày bắt đầu và ngày kết thúc.');
+            if (!lessonId || $('#lessonSelect option:selected').is(':disabled')) {
+                alert('Vui lòng chọn một bài học cụ thể.');
                 return;
             }
 

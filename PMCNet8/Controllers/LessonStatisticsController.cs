@@ -38,10 +38,22 @@ namespace PMCNet8.Controllers
         {
             if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
             {
-                return BadRequest("Invalid SponsorId");
+                //return BadRequest("Invalid SponsorId");
+                return RedirectToAction("Login", "Account");
             }
 
-            var lessons = await GetLessonsAsync(sponsorId);
+            var lessons = await _mediHub4RumContext.Topic
+                .Where(e => e.Category.HubCourse != null && e.Category.HubCourse.SponsorId == sponsorId)
+                .OrderBy(e => e.Order)
+                .Select(t => new LessonListItem
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    CourseId = t.Category_Id,
+                    CourseName = t.Category.Name
+                })
+                .ToListAsync();
+
             return View(lessons);
         }
 
@@ -64,12 +76,16 @@ namespace PMCNet8.Controllers
                     return BadRequest("Invalid SponsorId");
                 }
 
-                var lesson = await _mediHub4RumContext.SponsorHubCourse
-                    .Where(shc => shc.SponsorId == sponsorId)
-                    .SelectMany(shc => shc.Category.Topics)
-                    .Where(t => t.Id == lessonId)
-                    .Select(t => new { t.Name, CourseName = t.Category.Name })
-                    .FirstOrDefaultAsync();
+                var lesson = await _mediHub4RumContext.Topic
+                .Where(e => e.Category.HubCourse != null && e.Category.HubCourse.SponsorId == sponsorId && e.Id == lessonId)
+                .Select(t => new LessonListItem
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    CourseId = t.Category_Id,
+                    CourseName = t.Category.Name
+                })
+                .FirstOrDefaultAsync();
 
                 if (lesson == null)
                 {
@@ -98,20 +114,6 @@ namespace PMCNet8.Controllers
             }
         }
 
-        private async Task<List<LessonListItem>> GetLessonsAsync(Guid sponsorId)
-        {
-            return await _mediHub4RumContext.SponsorHubCourse
-                .Where(shc => shc.SponsorId == sponsorId)
-                .SelectMany(shc => shc.Category.Topics)
-                .Select(t => new LessonListItem
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    CourseName = t.Category.Name
-                })
-                .ToListAsync();
-        }
-
         private async Task<ChartLessonViewModel> GetChartDataAsync(Guid lessonId, DateTime? parsedStartDate, DateTime? parsedEndDate)
         {
             var query = _logActionDbContext.LogLesson
@@ -131,14 +133,23 @@ namespace PMCNet8.Controllers
 
             var questions = JsonConvert.DeserializeObject<List<LessonQuestion>>(listQuestions ?? string.Empty);
 
-            return new ChartLessonViewModel
+            var data = new ChartLessonViewModel
             {
-                Joins = logLessons.Select(ll => ll.UserId).Distinct().Count(userId => logLessons.Any(l => l.UserId == userId && l.Status == "Access")),
-                CompletedLesson = logLessons.Select(ll => ll.UserId).Distinct().Count(userId => logLessons.Any(l => l.UserId == userId && l.Status == "Finish")),
-                CompleteTest = logLessons.Count(l => l.Status == "PostTest" && IsPassingScore(l.Result)),
-                FailedTest = logLessons.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result)),
+                Joins = logLessons.Select(ll => ll.UserId).Distinct().Count(),
+                CompletedLesson = logLessons.Where(l => l.Status == "Finish").Select(ll => ll.UserId).Distinct().Count(),
+                DoTest = logLessons.Where(l => l.Status == "PostTest").Select(ll => ll.UserId).Distinct().Count(),
+                CompleteTest = logLessons.Where(l => l.Status == "PostTest" && IsPassingScore(l.Result)).Select(ll => ll.UserId).Distinct().Count(),
+                //FailedTest = logLessons.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result)),
                 TotalQuestions = questions?.Count ?? 0
             };
+
+            if (data.Joins < data.CompletedLesson) data.CompletedLesson = data.Joins;
+            if (data.CompletedLesson < data.DoTest) data.DoTest = data.CompletedLesson;
+            if (data.DoTest < data.CompleteTest) data.CompleteTest = data.DoTest;
+            data.FailedTest =  (data.DoTest - data.CompleteTest); //ko làm + làm sai
+            data.NotTest = (data.CompletedLesson - data.DoTest);
+
+            return data;
         }
 
         private async Task<List<LessonUserActivityViewModel>> GetTableDataAsync(Guid lessonId, DateTime? parsedStartDate, DateTime? parsedEndDate)

@@ -84,12 +84,12 @@ else
         var chart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Vào bài học', 'Đã học xong bài học', 'Đã làm bài tập - Đạt', 'Đã làm bài tập - Chưa đạt', 'Tổng số câu hỏi'],
+                labels: ['Vào bài học', 'Đã học xong bài học', 'Tổng đã làm bài tập', 'Đã làm bài tập - Đạt', 'Đã làm bài tập - Chưa đạt', 'Chưa làm bài tập','Tổng số câu hỏi'],
                 datasets: [
                     {
                         label: 'Số lượng',
-                        data: [chartData.joins, chartData.completedLesson, chartData.completeTest, chartData.failedTest, chartData.totalQuestions],
-                        backgroundColor: ['#279EFF', '#96EFFF', '#4CAF50', '#FFC107', '#C80036']
+                        data: [chartData.joins, chartData.completedLesson, chartData.doTest, chartData.completeTest, chartData.failedTest, chartData.notTest, chartData.totalQuestions],
+                        backgroundColor: ['#28a745', '#FF0000', '#007bff', '#ffc107', '#6c757d', '#000000', '#FF4191']
                     }
                 ]
             },

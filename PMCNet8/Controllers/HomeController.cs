@@ -202,12 +202,14 @@ namespace PMCNet8.Controllers
             var now = DateTime.Now;
             var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
 
+            int currentYear = now.Year;
+            int currentMonth = now.Month;
             try
             {
                
 
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                    .Where(e => e.Category.HubCourse.CourseType == 1
+                    .Where(e => e.Category.HubCourse.CourseType == 2
                                 && e.Category.HubCourse.SponsorId == sponsorId)
                     .Select(e => e.CategoryId)
                     .ToListAsync();
@@ -218,22 +220,19 @@ namespace PMCNet8.Controllers
                      .ToListAsync();
 
                 model.Watched = await _logActionContext.LogLesson
-                    .Where(e => lessonIds.Contains ( e.TopicId) 
+                    .Where(e => lessonIds.Contains ( e.TopicId) && e.Status == "Access"
                     && firstDayOfMonth <= e.DateAccess && e.DateAccess <= now)
                     .Select(e => e.UserId)
                     .Distinct()
                     .CountAsync();
 
 
-                model.Finish = await _mediHub4RumContext.SponsorHubCourseFinish
-                       .Where(cfr => cfr.Category.HubCourse != null &&
-                                     cfr.Category.HubCourse.SponsorId == sponsorId &&
-                                     cfr.Category.HubCourse.CourseType == 1 &&
-                                     firstDayOfMonth <= cfr.FinishDate.Date &&
-                                     cfr.FinishDate.Date <= now.Date)
-                       .Select(cfr => cfr.UserId)
-                       .Distinct()
-                       .CountAsync();
+                model.Finish = await _mediHub4RumContext.SponsorHubCourseReport
+                        .Where(cfr => cfr.Category.HubCourse != null &&
+                                      cfr.Category.HubCourse.SponsorId == sponsorId &&
+                                      cfr.Category.HubCourse.CourseType == 2 &&
+                                      currentYear == cfr.Year && currentMonth == cfr.Month)
+                        .SumAsync(e => e.FinishCourse);
                 return model;
             }
             catch (Exception ex)
@@ -247,10 +246,12 @@ namespace PMCNet8.Controllers
             var now = DateTime.Now;
             var firstDayOfYear = new DateTime(now.Year, 1, 1);
 
+            int currentYear = now.Year;
+            int currentMonth = now.Month;
             try
             {
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                    .Where(e => e.Category.HubCourse.CourseType == 1
+                    .Where(e => e.Category.HubCourse.CourseType == 2
                                 && e.Category.HubCourse.SponsorId == sponsorId)
                     .Select(e => e.CategoryId)
                     .ToListAsync();
@@ -261,20 +262,17 @@ namespace PMCNet8.Controllers
                      .ToListAsync();
 
                 model.Watched = await _logActionContext.LogLesson
-                    .Where(e => lessonIds.Contains(e.TopicId)
+                    .Where(e => lessonIds.Contains(e.TopicId) && e.Status == "Access"
                     && firstDayOfYear <= e.DateAccess && e.DateAccess <= now)
                     .Select(e => e.UserId)
                     .Distinct()
                     .CountAsync();
-                model.Finish = await _mediHub4RumContext.SponsorHubCourseFinish
+                model.Finish = await _mediHub4RumContext.SponsorHubCourseReport
                         .Where(cfr => cfr.Category.HubCourse != null &&
                                       cfr.Category.HubCourse.SponsorId == sponsorId &&
-                                      cfr.Category.HubCourse.CourseType == 1 &&
-                                      firstDayOfYear <= cfr.FinishDate.Date &&
-                                      cfr.FinishDate.Date <= now.Date)
-                        .Select(cfr => cfr.UserId)
-                        .Distinct()
-                        .CountAsync();
+                                      cfr.Category.HubCourse.CourseType == 2 &&
+                                      currentYear == cfr.Year)
+                        .SumAsync(e => e.FinishCourse);
                 return model;
             }
             catch (Exception ex)
@@ -291,9 +289,14 @@ namespace PMCNet8.Controllers
             int currentMonth = now.Month;
             try {
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                   .Where(shc => shc.SponsorId == sponsorId)
+                   .Where(shc => shc.SponsorId == sponsorId && shc.Category.HubCourse.CourseType == 0)
                    .Select(shc => shc.CategoryId)
                    .ToListAsync();
+                var lessonIds = await _mediHub4RumContext.Topic
+                .Where(t => categoryIds.Contains(t.Category_Id))
+                .Select(t => t.Id)
+                .ToListAsync();
+
                 model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
                    .Where(x => x.Category.HubCourse != null
                             && x.Category.HubCourse.SponsorId == sponsorId
@@ -302,18 +305,18 @@ namespace PMCNet8.Controllers
                             && x.Month == currentMonth)
                    .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
 
-                model.Register = await _mediHubSCAppContext.CPECourseActive
-                  .Where(e => categoryIds.Any(x => x == e.CategoryId && e.Category.HubCourse.CourseType == 0)
-                  && firstDayOfMonth <= e.DateCreated && e.DateCreated <= now)
-                  .Select(e => e.KeyCodeActive)
-                  .Distinct()
-                  .CountAsync();
+
+                model.Register = await _logActionContext.LogLesson
+                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                             && firstDayOfMonth <= x.DateAccess && x.DateAccess <= now)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .CountAsync();
 
                 model.FinishCourse = await _mediHub4RumContext.SponsorHubCourseReport
                         .Where(e => e.Category.HubCourse != null &&
                                       e.Category.HubCourse.SponsorId == sponsorId &&
-                                      e.Category.HubCourse.CourseType == 0 &&
-                                      currentMonth == e.Month)
+                                      e.Category.HubCourse.CourseType == 0 && currentYear == e.Year && currentMonth == e.Month )
                         .SumAsync(e => e.FinishCourse);
                 return model;
             }
@@ -332,9 +335,13 @@ namespace PMCNet8.Controllers
             try
             {
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                   .Where(shc => shc.SponsorId == sponsorId)
+                   .Where(shc => shc.SponsorId == sponsorId && shc.Category.HubCourse.CourseType == 0)
                    .Select(shc => shc.CategoryId)
                    .ToListAsync();
+                var lessonIds = await _mediHub4RumContext.Topic
+                .Where(t => categoryIds.Contains(t.Category_Id))
+                .Select(t => t.Id)
+                .ToListAsync();
 
                 model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
                     .Where(x => x.Category.HubCourse != null
@@ -343,12 +350,16 @@ namespace PMCNet8.Controllers
                              && x.Year == currentYear)
                     .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
 
-                model.Register = await _mediHubSCAppContext.CPECourseActive
-                    .Where(e => categoryIds.Any(x => x == e.CategoryId) && e.Category.HubCourse.CourseType == 0
-                    && firstDayOfYear <= e.DateCreated && e.DateCreated <= now)
-                    .Select(e => e.KeyCodeActive)
+                model.Register = await _logActionContext.LogLesson
+                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                             && firstDayOfYear <= x.DateAccess && x.DateAccess <= now)
+                    .Select(x => x.UserId)
                     .Distinct()
                     .CountAsync();
+
+               
+                // Đếm số lượng UserId duy nhất
+              
 
                 model.FinishCourse = await _mediHub4RumContext.SponsorHubCourseReport
                         .Where(cfr => cfr.Category.HubCourse != null &&
@@ -374,31 +385,36 @@ namespace PMCNet8.Controllers
             try
             {
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                    .Where(shc => shc.SponsorId == sponsorId)
-                    .Select(shc => shc.CategoryId)
-                    .ToListAsync();
+                  .Where(shc => shc.SponsorId == sponsorId && shc.Category.HubCourse.CourseType == 1)
+                  .Select(shc => shc.CategoryId)
+                  .ToListAsync();
+
+                var lessonIds = await _mediHub4RumContext.Topic
+               .Where(t => categoryIds.Contains(t.Category_Id))
+               .Select(t => t.Id)
+               .ToListAsync();
 
                 model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
                     .Where(x => x.Category.HubCourse != null
                              && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Category.HubCourse.CourseType == 2
+                             && x.Category.HubCourse.CourseType == 1
                              && x.Year == currentYear
                              && x.Month == currentMonth)
                     .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
 
-                model.Study = await _mediHub4RumContext.SponsorHubCourseReport
-                    .Where(x => x.Category.HubCourse != null
-                             && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Year == currentYear)
-                    .SumAsync(x => x.FinishAtleastOneLesson);
+                model.Study = await _logActionContext.LogLesson
+                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                             && firstDayOfMonth <= x.DateAccess && x.DateAccess <= now)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .CountAsync();
 
-                model.FinishCourse = await _mediHub4RumContext.SponsorHubCourseFinish
-                        .Where(cfr => cfr.Category.HubCourse != null &&
-                                      cfr.Category.HubCourse.SponsorId == sponsorId &&
-                                      cfr.Category.HubCourse.CourseType == 2 &&
-                                      firstDayOfMonth <= cfr.FinishDate &&
-                                      cfr.FinishDate <= now)
-                        .CountAsync();
+                model.FinishCourse = await _mediHub4RumContext.SponsorHubCourseReport
+                       .Where(cfr => cfr.Category.HubCourse != null &&
+                                     cfr.Category.HubCourse.SponsorId == sponsorId &&
+                                     cfr.Category.HubCourse.CourseType == 1 && currentMonth == cfr.Month
+                                     && currentYear == cfr.Year)
+                       .SumAsync(cfr => cfr.FinishCourse);
                 return model;
             }
             catch (Exception ex)
@@ -415,30 +431,35 @@ namespace PMCNet8.Controllers
             try
             {
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                 .Where(shc => shc.SponsorId == sponsorId && shc.Category.HubCourse.CourseType == 2)
+                 .Where(shc => shc.SponsorId == sponsorId && shc.Category.HubCourse.CourseType == 1)
                  .Select(shc => shc.CategoryId)
                  .ToListAsync();
+
+                var lessonIds = await _mediHub4RumContext.Topic
+               .Where(t => categoryIds.Contains(t.Category_Id))
+               .Select(t => t.Id)
+               .ToListAsync();
 
                 model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
                     .Where(x => x.Category.HubCourse != null
                              && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Category.HubCourse.CourseType == 2
+                             && x.Category.HubCourse.CourseType == 1
                              && x.Year == currentYear)
                     .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
 
-                model.Study = await _mediHub4RumContext.SponsorHubCourseReport
-                    .Where(x => x.Category.HubCourse != null
-                             && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Year == currentYear)
-                    .SumAsync(x => x.FinishAtleastOneLesson);
+                model.Study = await _logActionContext.LogLesson
+                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                             && firstDayOfYear <= x.DateAccess && x.DateAccess <= now)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .CountAsync();
 
-                model.FinishCourse = await _mediHub4RumContext.SponsorHubCourseFinish
-                        .Where(cfr => cfr.Category.HubCourse != null &&
-                                      cfr.Category.HubCourse.SponsorId == sponsorId &&
-                                      cfr.Category.HubCourse.CourseType == 2 &&
-                                      firstDayOfYear <= cfr.FinishDate &&
-                                      cfr.FinishDate <= now)
-                        .CountAsync();
+                model.FinishCourse = await _mediHub4RumContext.SponsorHubCourseReport
+                       .Where(cfr => cfr.Category.HubCourse != null &&
+                                     cfr.Category.HubCourse.SponsorId == sponsorId &&
+                                     cfr.Category.HubCourse.CourseType == 1 &&
+                                     currentYear == cfr.Year)
+                       .SumAsync(cfr => cfr.FinishCourse);
                 return model;
             }
             catch (Exception ex)
@@ -449,8 +470,7 @@ namespace PMCNet8.Controllers
         private async Task<int> GetUserStudyForMonthAsync(Guid sponsorId)
         {
             var now = DateTime.Now;
-            int currentYear = now.Year;
-            int currentMonth = now.Month;
+            var firstDayOfMonth = new DateTime(now.Year, now.Month, 1);
 
             try
             {
@@ -468,8 +488,7 @@ namespace PMCNet8.Controllers
                 // Đếm số lượng UserId duy nhất
                 return await _logActionContext.LogLesson
                     .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
-                             && x.DateAccess.Year == currentYear
-                             && x.DateAccess.Month == currentMonth)
+                             && firstDayOfMonth <= x.DateAccess && x.DateAccess <= now)
                     .Select(x => x.UserId)
                     .Distinct()
                     .CountAsync();
@@ -483,7 +502,7 @@ namespace PMCNet8.Controllers
         private async Task<int> GetUserStudyForYearAsync(Guid sponsorId)
         {
             var now = DateTime.Now;
-            int currentYear = now.Year;
+            var firstDayOfYear = new DateTime(now.Year, 1, 1);
 
             try
             {
@@ -499,8 +518,8 @@ namespace PMCNet8.Controllers
                 // Đếm số lượng UserId duy nhất
                 return await _logActionContext.LogLesson
                     .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
-                             && x.DateAccess.Year == currentYear)
-                    .Select(x => x.UserId)
+                             && firstDayOfYear <= x.DateAccess && x.DateAccess <= now)
+                    .Select( x => x.UserId  )
                     .Distinct()
                     .CountAsync();
             }
@@ -530,7 +549,8 @@ namespace PMCNet8.Controllers
         {
             // Lấy danh sách CategoryId của Sponsor
             var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                .Where(shc => shc.SponsorId == sponsorId)
+                .Where(shc => shc.SponsorId == sponsorId
+                &&  shc.Category.HubCourse.CourseType == 0)
                 .Select(shc => shc.CategoryId)
                 .ToListAsync();
 

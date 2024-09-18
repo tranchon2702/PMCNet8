@@ -11,6 +11,7 @@ namespace PMCNet8.Models
             public string? TenDuocSi { get; set; }
             public string? KetQua { get; set; }
             public string? CourseName { get; set; }
+            public DateTime NgayHoanThanh {  get; set; }
             public List<ChartDataViewModel> ChartData { get; set; }
             public List<CourseActivityViewModel> TableData { get; set; }
             public DateTime? StartDate { get;  set; }

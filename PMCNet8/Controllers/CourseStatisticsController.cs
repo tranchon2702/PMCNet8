@@ -1,10 +1,7 @@
 ﻿using Data.Data;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
 using PMCNet8.Models;
-using System.Linq;
 
 public class CourseStatisticsController : Controller
 {
@@ -12,9 +9,8 @@ public class CourseStatisticsController : Controller
     private readonly ILogger<CourseStatisticsController> _logger;
     private readonly MedihubSCAppDbContext _mediHubSCAppContext;
     private readonly LogActionDbContext _logActionDbContext;
-    public CourseStatisticsController( LogActionDbContext logActionDbContext  ,Medihub4rumDbContext mediHub4RumContext, ILogger<CourseStatisticsController> logger, MedihubSCAppDbContext mediHubSCAppContext)
+    public CourseStatisticsController(LogActionDbContext logActionDbContext, Medihub4rumDbContext mediHub4RumContext, ILogger<CourseStatisticsController> logger, MedihubSCAppDbContext mediHubSCAppContext)
     {
-
         _mediHub4RumContext = mediHub4RumContext;
         _logger = logger;
         _mediHubSCAppContext = mediHubSCAppContext;
@@ -27,7 +23,8 @@ public class CourseStatisticsController : Controller
 
         if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
         {
-            return BadRequest("Invalid SponsorId");
+            //return BadRequest("Invalid SponsorId");
+            return RedirectToAction("Login", "Account");
         }
 
         model.CourseListItems = await GetCoursesAsync(sponsorId);
@@ -70,7 +67,7 @@ public class CourseStatisticsController : Controller
             return BadRequest("Invalid SponsorId");
         }
         var courses = await GetCoursesAsync(sponsorId);
-        return Ok(courses);    
+        return Ok(courses);
     }
 
     [HttpGet("api/course/{courseId}")]
@@ -303,7 +300,7 @@ public class CourseStatisticsController : Controller
 
             foreach (var point in timePoints)
             {
-              
+
                 // Tính tổng số người hoàn thành đến thời điểm này (không phân biệt đạt/không đạt)
                 result.TotalFinishs[point] = await _mediHub4RumContext.SponsorHubCourseFinish
                     .Where(e => e.CategoryId == courseId && e.FinishDate < point)
@@ -338,7 +335,7 @@ public class CourseStatisticsController : Controller
 
                 result.TotalWatchedAllVideos[point] = usersWatchedAllVideos;
             }
-        
+
 
             return result;
         }

@@ -236,7 +236,7 @@ namespace PMCNet8.Controllers
                         questionView.OptionPercentages = optionPercentages;
                         questionView.Statistics = FormatStatistics(optionPercentages);
                         break;
-                   
+
                 }
 
                 questionViewModels.Add(questionView);

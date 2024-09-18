@@ -62,21 +62,20 @@
                 allowClear: true
             });
 
-            $courseSelect.on('select2:open', function (e) {
-                if (!$(this).data('select2-open-handled')) {
-                    $(this).data('select2-open-handled', true);
-                    $courseSelect.select2('close');
-                    var firstCourseId = $courseSelect.val();
-                    if (firstCourseId) {
-                        loadCourseData(firstCourseId);
-                    }
-                }
-            });
+            // Load data for the first course automatically
+            var firstCourseId = $courseSelect.find('option:first').val();
+            if (firstCourseId) {
+                loadCourseData(firstCourseId);
+            }
 
             $courseSelect.on('select2:select', function (e) {
                 var selectedCourseId = e.params.data.id;
                 loadCourseData(selectedCourseId);
             });
+
+            initializeDataTable();
+            google.charts.load('current', { 'packages': ['corechart'] });
+            google.charts.setOnLoadCallback(initializeCharts);
         });
 
         function loadCourseData(selectedCourseId) {
@@ -114,12 +113,12 @@
             var options = {
                 title: 'Tình hình cấp phát và sử dụng mã khóa học',
                 is3D: true,
-                colors: ['#FF6384', '#36A2EB'],
+                colors: ['#28a745', '#ffc107'],
                 legend: { position: 'none' },
                 pieSliceText: 'percentage',
                 slices: {
-                    0: { color: '#FF6384' },
-                    1: { color: '#36A2EB' }
+                    0: { color: '#28a745' },
+                    1: { color: '#ffc107' }
                 },
                 tooltip: { text: 'both' }
             };
@@ -202,7 +201,7 @@
                         min: 0
                     }
                 },
-                colors: [ '#FF0000', '#00CC00', '#FFA500', '#8B00FF'],
+                colors: ['#28a745', '#FF0000', '#007bff', '#ffc107'],
                 chartArea: {
                     width: '85%',
                     height: '70%'

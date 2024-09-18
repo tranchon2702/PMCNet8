@@ -16,7 +16,6 @@
                     <div class="icon">
                         <i class="fas fa-book-reader"></i>
                     </div>
-                    <a href="#" class="small-box-footer">Chi tiết <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
             <div class="col-lg-4 col-6">
@@ -28,19 +27,17 @@
                     <div class="icon">
                         <i class="fas fa-user-graduate"></i>
                     </div>
-                    <a href="#" class="small-box-footer">Chi tiết <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
             <div class="col-lg-4 col-6">
                 <div class="small-box bg-warning">
                     <div class="inner">
-                        <p>Số dược sĩ đã nhận chứng chỉ</p>
+                        <p>Số dược sĩ được cấp chứng chỉ</p>
                         <h3 id="getCertificatesMonth">Loading...</h3>
                     </div>
                     <div class="icon">
                         <i class="fas fa-certificate"></i>
                     </div>
-                    <a href="#" class="small-box-footer">Chi tiết <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
         </div>
@@ -56,7 +53,6 @@
                     <div class="icon">
                         <i class="fas fa-book-reader"></i>
                     </div>
-                    <a href="#" class="small-box-footer">Chi tiết <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
             <div class="col-lg-4 col-6">
@@ -68,19 +64,17 @@
                     <div class="icon">
                         <i class="fas fa-user-graduate"></i>
                     </div>
-                    <a href="#" class="small-box-footer">Chi tiết <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
             <div class="col-lg-4 col-6">
                 <div class="small-box bg-warning">
                     <div class="inner">
-                        <p>Số dược sĩ đã nhận chứng chỉ</p>
+                        <p>Số dược sĩ được cấp chứng chỉ</p>
                         <h3 id="getCertificatesYear">Loading...</h3>
                     </div>
                     <div class="icon">
                         <i class="fas fa-certificate"></i>
                     </div>
-                    <a href="#" class="small-box-footer">Chi tiết <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
         </div>
@@ -102,11 +96,11 @@
                                 <div class="chart-legend">
                                     <div class="legend-item">
                                         <span class="legend-color" style="background-color: #4CAF50;"></span>
-                                        <span class="legend-text">Học viên đã đăng ký</span>
+                                        <span class="legend-text">Học viên đã tham gia học</span>
                                     </div>
                                     <div class="legend-item">
                                         <span class="legend-color" style="background-color: #2196F3;"></span>
-                                        <span class="legend-text">Học viên đã học ít nhất 50% giờ học</span>
+                                        <span class="legend-text">Học viên đã học ít nhất 1 khóa học</span>
                                     </div>
                                     <div class="legend-item">
                                         <span class="legend-color" style="background-color: #FFC107;"></span>
@@ -120,7 +114,7 @@
             </div>
         }
 
-        @if (Model.AvailableCourseTypes.Contains(2))
+        @if (Model.AvailableCourseTypes.Contains(1))
         {
             <div class="row">
                 <div class="col-12">
@@ -141,7 +135,7 @@
                                     </div>
                                     <div class="legend-item">
                                         <span class="legend-color" style="background-color: #2196F3;"></span>
-                                        <span class="legend-text">Học viên đã học ít nhất 50% giờ học</span>
+                                        <span class="legend-text">Học viên đã học ít nhất 1 khóa học</span>
                                     </div>
                                     <div class="legend-item">
                                         <span class="legend-color" style="background-color: #FFC107;"></span>
@@ -154,9 +148,8 @@
                 </div>
             </div>
         }
-    </div>
 
-        @if (Model.AvailableCourseTypes.Contains(1))
+        @if (Model.AvailableCourseTypes.Contains(2))
         {
             <div class="row">
                 <div class="col-12">
@@ -173,7 +166,7 @@
                                 <div class="chart-legend">
                                     <div class="legend-item">
                                         <span class="legend-color" style="background-color: #4CAF50;"></span>
-                                        <span class="legend-text">Học viên đã xem</span>
+                                        <span class="legend-text">Học viên đã tham gia học</span>
                                     </div>
                                     <div class="legend-item">
                                         <span class="legend-color" style="background-color: #2196F3;"></span>
@@ -186,8 +179,7 @@
                 </div>
             </div>
         }
-
-       
+    </div>
 </section>
 
 @section Scripts {
@@ -273,7 +265,7 @@
         }
 
         async function drawUpdateCharts() {
-            if (!availableCourseTypes.includes(1)) return;
+            if (!availableCourseTypes.includes(2)) return;
             try {
                 const [monthData, yearData] = await Promise.all([
                     fetchData('/api/totalUpdateCategory/month'),
@@ -295,7 +287,7 @@
             const watched = data.watched ?? 0;
             const finish = data.finish ?? 0;
             var chartData = google.visualization.arrayToDataTable([
-                ['', 'Học viên đã xem', 'Học viên đã hoàn thành'],
+                ['', 'Học viên đã tham gia học', 'Học viên đã hoàn thành'],
                 ['Khóa học cập nhật kiến thức', watched, finish]
             ]);
 
@@ -320,7 +312,7 @@
         }
 
         async function drawNonCertificateCharts() {
-            if (!availableCourseTypes.includes(2)) return;
+            if (!availableCourseTypes.includes(1)) return;
             try {
                 const [monthData, yearData] = await Promise.all([
                     fetchData('/api/totalNonCertificatesCategory/month'),
@@ -441,10 +433,10 @@
                     if (availableCourseTypes.includes(0)) {
                         drawCertificateCharts();
                     }
-                    if (availableCourseTypes.includes(1)) {
+                    if (availableCourseTypes.includes(2)) {
                         drawUpdateCharts();
                     }
-                    if (availableCourseTypes.includes(2)) {
+                    if (availableCourseTypes.includes(1)) {
                         drawNonCertificateCharts();
                     }
                 });
