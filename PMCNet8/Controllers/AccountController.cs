@@ -38,7 +38,6 @@ public class AccountController : Controller
                 .Include(u => u.SponsorUsers)
                     .ThenInclude(su => su.Sponsor)
                 .FirstOrDefaultAsync(u => u.UserName == userName && u.Password == password);
-
             if (user != null)
             {
                 var sponsorUser = user.SponsorUsers.FirstOrDefault();
@@ -50,12 +49,18 @@ public class AccountController : Controller
                         HttpContext.Session.SetString("UserId", user.Id.ToString());
                         HttpContext.Session.SetString("SponsorId", sponsor.Id.ToString());
                         HttpContext.Session.SetString("SponsorName", sponsor.Name);
-
                         // Kiểm tra xem Sponsor có Hub hay không
                         var hasHub = await _context.SponsorHub.AnyAsync(sh => sh.SponsorId == sponsor.Id);
                         HttpContext.Session.SetString("HasHub", hasHub.ToString());
 
-                        return RedirectToAction("Index", "Home");
+                        if (hasHub)
+                        {
+                            return RedirectToAction("Index", "Home");
+                        }
+                        else
+                        {
+                            return RedirectToAction("Index", "Sale");
+                        }
                     }
                     else
                     {
@@ -80,7 +85,6 @@ public class AccountController : Controller
         }
         return View();
     }
-
     [HttpPost]
     public IActionResult Logout()
     {

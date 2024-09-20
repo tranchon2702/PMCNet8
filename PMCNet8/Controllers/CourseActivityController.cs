@@ -85,7 +85,7 @@ namespace PMCNet8.Controllers
 
                 var topics = await _mediHub4RumContext.Topic
                     .Where(t => t.Category_Id == courseId)
-                    .OrderBy(t => t.Order)
+                    .OrderBy(t => t.Order).ThenBy(e => e.Name)
                     .Select(t => new TopicInfo { Id = t.Id, Name = t.Name })
                     .ToListAsync();
 
