@@ -166,7 +166,7 @@ namespace PMCNet8.Controllers
                     DiaChi = appSetup?.Address ?? "",
                     DonViCongTac = appSetup?.DrugName ?? "",
                     KetQua = userCompletion?.IsPassed == true ? "Đạt" : "Không đạt",
-                    NgayHoanThanh = userCompletion.FinishDate
+                    NgayHoanThanh = userCompletion.FinishDate  
                 };
             }).ToList();
 
