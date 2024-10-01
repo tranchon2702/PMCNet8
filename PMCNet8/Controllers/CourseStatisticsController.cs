@@ -80,7 +80,8 @@ public class CourseStatisticsController : Controller
     private async Task<List<CourseListItems>> GetCoursesAsync(Guid sponsorId)
     {
         return await _mediHub4RumContext.SponsorHubCourse
-            .Where(shc => shc.SponsorId == sponsorId)
+            .Where(shc => shc.SponsorId == sponsorId &&
+                              (shc.Category.HubCourse.CourseType == 0 || shc.CourseType == 1))
             .Select(shc => new CourseListItems
             {
                 Id = shc.CategoryId,
@@ -94,7 +95,7 @@ public class CourseStatisticsController : Controller
         try
         {
             var courseName = await _mediHub4RumContext.Category
-                .Where(c => c.Id == courseId)
+                .Where(c => c.Id == courseId )
                 .Select(c => c.Name)
                 .FirstOrDefaultAsync();
 

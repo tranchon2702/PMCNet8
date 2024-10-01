@@ -156,6 +156,8 @@
         </div>
     </div>
 }
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     var defaultSelectedCourseId = '@Model.SelectedCourseId';
     var pieData = @Html.Raw(Json.Serialize(Model.CourseInfo.PieData));

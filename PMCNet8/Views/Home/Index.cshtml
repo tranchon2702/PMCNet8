@@ -149,37 +149,6 @@
             </div>
         }
 
-        @if (Model.AvailableCourseTypes.Contains(2))
-        {
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Khóa học cập nhật kiến thức</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <div class="chart-row">
-                                    <div id="update_month"></div>
-                                    <div id="update_year"></div>
-                                </div>
-                                <div class="chart-legend">
-                                    <div class="legend-item">
-                                        <span class="legend-color" style="background-color: #4CAF50;"></span>
-                                        <span class="legend-text">Học viên đã tham gia học</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <span class="legend-color" style="background-color: #2196F3;"></span>
-                                        <span class="legend-text">Học viên đã hoàn thành</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
 </section>
 
 @section Scripts {
@@ -234,7 +203,7 @@
             const finishCourse = data.finishCourse ?? 0;
             const finishTime = data.finishTime ?? 0;
             var chartData = google.visualization.arrayToDataTable([
-                ['', 'Học viên đã đăng ký', 'Học viên đã học ít nhất 50% giờ học', 'Học viên đã hoàn thành khóa học'],
+                ['', 'Học viên đã tham gia học', 'Học viên đã học ít nhất 1 khóa học', 'Học viên đã hoàn thành khóa học'],
                 ['Khóa học có cấp chứng chỉ', register, finishTime, finishCourse]
             ]);
 
@@ -335,7 +304,7 @@
             const finishCourse = data.finishCourse ?? 0;
             const finishTime = data.finishTime ?? 0;
             var chartData = google.visualization.arrayToDataTable([
-                ['', 'Học viên đã tham gia học', 'Học viên đã học ít nhất 50% giờ học', 'Học viên đã hoàn thành khóa học'],
+                ['', 'Học viên đã tham gia học', 'Học viên đã học ít nhất 1 khóa học', 'Học viên đã hoàn thành khóa học'],
                 ['Khóa học không cấp chứng chỉ', study, finishTime, finishCourse]
             ]);
 

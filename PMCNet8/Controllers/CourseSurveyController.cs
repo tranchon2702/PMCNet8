@@ -36,7 +36,8 @@ namespace PMCNet8.Controllers
                 var sponsorId = Guid.Parse(HttpContext.Session.GetString("SponsorId"));
 
                 var courses = await _mediHub4RumContext.SponsorHubCourse
-                    .Where(shc => shc.SponsorId == sponsorId)
+                    .Where(shc => shc.SponsorId == sponsorId &&
+                              (shc.Category.HubCourse.CourseType == 0 || shc.CourseType == 1))
                     .Select(shc => new SelectListItem
                     {
                         Value = shc.CategoryId.ToString(),

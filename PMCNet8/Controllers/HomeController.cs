@@ -296,14 +296,44 @@ namespace PMCNet8.Controllers
                 .Where(t => categoryIds.Contains(t.Category_Id))
                 .Select(t => t.Id)
                 .ToListAsync();
+                var topicsByCategory = new Dictionary<Guid, List<Guid>>();
+                var topics = await _mediHub4RumContext.Topic
+                    .Where(t => categoryIds.Contains(t.Category_Id))
+                    .Select(t => new { t.Category_Id, t.Id })
+                    .ToListAsync();
 
-                model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
-                   .Where(x => x.Category.HubCourse != null
-                            && x.Category.HubCourse.SponsorId == sponsorId
-                            && x.Category.HubCourse.CourseType == 0
-                            && x.Year == currentYear
-                            && x.Month == currentMonth)
-                   .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
+                foreach (var categoryId in categoryIds)
+                {
+                    var topicIdsForCategory = topics
+                        .Where(t => t.Category_Id == categoryId)
+                        .Select(t => t.Id)
+                        .ToList();
+                    topicsByCategory.Add(categoryId, topicIdsForCategory);
+                }
+
+                // Lấy danh sách LogLesson của User trong năm hiện tại
+                var userLogLessons = await _logActionContext.LogLesson
+                    .Where(ll => ll.DateAccess >= firstDayOfMonth && ll.DateAccess <= now)
+                    .ToListAsync();
+
+                // Kiểm tra người dùng nào đã hoàn thành ít nhất một khóa học không cấp chứng chỉ
+                var completedUsers = new HashSet<Guid>();
+                foreach (var category in topicsByCategory)
+                {
+                    var topicIdsForCategory = category.Value;
+                    var usersCompletedCategory = userLogLessons
+                        .Where(log => topicIdsForCategory.Contains(log.TopicId))
+                        .GroupBy(log => log.UserId)
+                        .Where(group => topicIdsForCategory.All(topicId => group.Select(log => log.TopicId).Contains(topicId)))
+                        .Select(group => group.Key);
+
+                    foreach (var userId in usersCompletedCategory)
+                    {
+                        completedUsers.Add(userId);
+                    }
+                }
+
+                model.FinishTime = completedUsers.Count;
 
 
                 model.Register = await _logActionContext.LogLesson
@@ -343,12 +373,44 @@ namespace PMCNet8.Controllers
                 .Select(t => t.Id)
                 .ToListAsync();
 
-                model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
-                    .Where(x => x.Category.HubCourse != null
-                             && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Category.HubCourse.CourseType == 0
-                             && x.Year == currentYear)
-                    .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
+                var topicsByCategory = new Dictionary<Guid, List<Guid>>();
+                var topics = await _mediHub4RumContext.Topic
+                    .Where(t => categoryIds.Contains(t.Category_Id))
+                    .Select(t => new { t.Category_Id, t.Id })
+                    .ToListAsync();
+
+                foreach (var categoryId in categoryIds)
+                {
+                    var topicIdsForCategory = topics
+                        .Where(t => t.Category_Id == categoryId)
+                        .Select(t => t.Id)
+                        .ToList();
+                    topicsByCategory.Add(categoryId, topicIdsForCategory);
+                }
+
+                // Lấy danh sách LogLesson của User trong năm hiện tại
+                var userLogLessons = await _logActionContext.LogLesson
+                    .Where(ll => ll.DateAccess >= firstDayOfYear && ll.DateAccess <= now)
+                    .ToListAsync();
+
+                // Kiểm tra người dùng nào đã hoàn thành ít nhất một khóa học không cấp chứng chỉ
+                var completedUsers = new HashSet<Guid>();
+                foreach (var category in topicsByCategory)
+                {
+                    var topicIdsForCategory = category.Value;
+                    var usersCompletedCategory = userLogLessons
+                        .Where(log => topicIdsForCategory.Contains(log.TopicId))
+                        .GroupBy(log => log.UserId)
+                        .Where(group => topicIdsForCategory.All(topicId => group.Select(log => log.TopicId).Contains(topicId)))
+                        .Select(group => group.Key);
+
+                    foreach (var userId in usersCompletedCategory)
+                    {
+                        completedUsers.Add(userId);
+                    }
+                }
+
+                model.FinishTime = completedUsers.Count;
 
                 model.Register = await _logActionContext.LogLesson
                     .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
@@ -394,13 +456,44 @@ namespace PMCNet8.Controllers
                .Select(t => t.Id)
                .ToListAsync();
 
-                model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
-                    .Where(x => x.Category.HubCourse != null
-                             && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Category.HubCourse.CourseType == 1
-                             && x.Year == currentYear
-                             && x.Month == currentMonth)
-                    .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
+                var topicsByCategory = new Dictionary<Guid, List<Guid>>();
+                var topics = await _mediHub4RumContext.Topic
+                    .Where(t => categoryIds.Contains(t.Category_Id))
+                    .Select(t => new { t.Category_Id, t.Id })
+                    .ToListAsync();
+
+                foreach (var categoryId in categoryIds)
+                {
+                    var topicIdsForCategory = topics
+                        .Where(t => t.Category_Id == categoryId)
+                        .Select(t => t.Id)
+                        .ToList();
+                    topicsByCategory.Add(categoryId, topicIdsForCategory);
+                }
+
+                // Lấy danh sách LogLesson của User trong năm hiện tại
+                var userLogLessons = await _logActionContext.LogLesson
+                    .Where(ll => ll.DateAccess >= firstDayOfMonth && ll.DateAccess <= now)
+                    .ToListAsync();
+
+                // Kiểm tra người dùng nào đã hoàn thành ít nhất một khóa học không cấp chứng chỉ
+                var completedUsers = new HashSet<Guid>();
+                foreach (var category in topicsByCategory)
+                {
+                    var topicIdsForCategory = category.Value;
+                    var usersCompletedCategory = userLogLessons
+                        .Where(log => topicIdsForCategory.Contains(log.TopicId))
+                        .GroupBy(log => log.UserId)
+                        .Where(group => topicIdsForCategory.All(topicId => group.Select(log => log.TopicId).Contains(topicId)))
+                        .Select(group => group.Key);
+
+                    foreach (var userId in usersCompletedCategory)
+                    {
+                        completedUsers.Add(userId);
+                    }
+                }
+
+                model.FinishTime = completedUsers.Count;
 
                 model.Study = await _logActionContext.LogLesson
                     .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
@@ -440,12 +533,44 @@ namespace PMCNet8.Controllers
                .Select(t => t.Id)
                .ToListAsync();
 
-                model.FinishTime = await _mediHub4RumContext.SponsorHubCourseReport
-                    .Where(x => x.Category.HubCourse != null
-                             && x.Category.HubCourse.SponsorId == sponsorId
-                             && x.Category.HubCourse.CourseType == 1
-                             && x.Year == currentYear)
-                    .SumAsync(x => x.FinishAtleasFiftyPercentCourse);
+                var topicsByCategory = new Dictionary<Guid, List<Guid>>();
+                var topics = await _mediHub4RumContext.Topic
+                    .Where(t => categoryIds.Contains(t.Category_Id))
+                    .Select(t => new { t.Category_Id, t.Id })
+                    .ToListAsync();
+
+                foreach (var categoryId in categoryIds)
+                {
+                    var topicIdsForCategory = topics
+                        .Where(t => t.Category_Id == categoryId)
+                        .Select(t => t.Id)
+                        .ToList();
+                    topicsByCategory.Add(categoryId, topicIdsForCategory);
+                }
+
+                // Lấy danh sách LogLesson của User trong năm hiện tại
+                var userLogLessons = await _logActionContext.LogLesson
+                    .Where(ll => ll.DateAccess >= firstDayOfYear && ll.DateAccess <= now)
+                    .ToListAsync();
+
+                // Kiểm tra người dùng nào đã hoàn thành ít nhất một khóa học không cấp chứng chỉ
+                var completedUsers = new HashSet<Guid>();
+                foreach (var category in topicsByCategory)
+                {
+                    var topicIdsForCategory = category.Value;
+                    var usersCompletedCategory = userLogLessons
+                        .Where(log => topicIdsForCategory.Contains(log.TopicId))
+                        .GroupBy(log => log.UserId)
+                        .Where(group => topicIdsForCategory.All(topicId => group.Select(log => log.TopicId).Contains(topicId)))
+                        .Select(group => group.Key);
+
+                    foreach (var userId in usersCompletedCategory)
+                    {
+                        completedUsers.Add(userId);
+                    }
+                }
+
+                model.FinishTime = completedUsers.Count;
 
                 model.Study = await _logActionContext.LogLesson
                     .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
@@ -478,7 +603,8 @@ namespace PMCNet8.Controllers
 
                 // Lấy danh sách CategoryId của Sponsor
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                    .Where(shc => shc.SponsorId == sponsorId)
+                    .Where(shc => shc.SponsorId == sponsorId &&
+                (shc.Category.HubCourse.CourseType == 0 || shc.CourseType == 1))
                     .Select(shc => shc.CategoryId)
                     .ToListAsync();
                 var lessonIds = await _mediHub4RumContext.Topic
@@ -508,7 +634,8 @@ namespace PMCNet8.Controllers
             {
                 // Lấy danh sách CategoryId của Sponsor
                 var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                    .Where(shc => shc.SponsorId == sponsorId)
+                    .Where(shc => shc.SponsorId == sponsorId &&
+                (shc.Category.HubCourse.CourseType == 0 || shc.CourseType == 1))
                     .Select(shc => shc.CategoryId)
                     .ToListAsync();
                 var lessonIds = await _mediHub4RumContext.Topic
@@ -531,20 +658,73 @@ namespace PMCNet8.Controllers
         }
         private async Task<int> GetTotalUsersCompletedCoursesAsync(DateTime startDate, DateTime endDate, Guid sponsorId)
         {
-            // Lấy danh sách CategoryId của Sponsor
+            //  Lấy danh sách CategoryId của Sponsor
             var categoryIds = await _mediHub4RumContext.SponsorHubCourse
-                .Where(shc => shc.SponsorId == sponsorId)
+                .Where(shc => shc.SponsorId == sponsorId &&
+                              (shc.Category.HubCourse.CourseType == 0 || shc.CourseType == 1)) 
                 .Select(shc => shc.CategoryId)
                 .ToListAsync();
 
-            return await _mediHub4RumContext.SponsorHubCourseFinish
-                .Where(cfr =>  cfr.FinishDate >= startDate
-                           && cfr.FinishDate <= endDate
-                           && categoryIds.Contains(cfr.CategoryId))
-                .Select(cfr => cfr.UserId)
-                .Distinct()
-                .CountAsync();
+           
+            if (!categoryIds.Any())
+            {
+                return 0; 
+            }
+
+            // Lấy danh sách TopicId theo từng CategoryId
+            var topicsByCategory = new Dictionary<Guid, List<Guid>>();
+            try
+            {
+                var topics = await _mediHub4RumContext.Topic
+                    .Where(t => categoryIds.Contains(t.Category_Id))
+                    .Select(t => new { t.Category_Id, t.Id })
+                    .ToListAsync();
+
+                foreach (var categoryId in categoryIds)
+                {
+                    var topicIdsForCategory = topics
+                        .Where(t => t.Category_Id == categoryId)
+                        .Select(t => t.Id)
+                        .ToList();
+                    topicsByCategory.Add(categoryId, topicIdsForCategory);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Step 2: {ex.Message}");
+            }
+
+            // Lấy danh sách LogLesson của User trong khoảng thời gian xác định
+            var userLogLessons = await _logActionContext.LogLesson
+                .Where(ll => ll.DateAccess >= startDate && ll.DateAccess <= endDate)
+                .ToListAsync();
+
+            //  Kiểm tra người dùng nào đã click vào đủ tất cả các Topic của ít nhất một Category
+            var completedUsers = new List<Guid>(); 
+            foreach (var category in topicsByCategory)
+            {
+                var topicIdsForCategory = category.Value; // Danh sách TopicId cho Category hiện tại
+                                                         
+                var usersCompletedCategory = userLogLessons
+                    .Where(log => topicIdsForCategory.Contains(log.TopicId)) // Chỉ lấy LogLesson cho các Topic trong Category này
+                    .GroupBy(log => log.UserId) 
+                    .Where(group => topicIdsForCategory.All(topicId => group.Select(log => log.TopicId).Contains(topicId))) // Kiểm tra xem User đã hoàn thành đủ tất cả các Topic chưa
+                    .Select(group => group.Key)
+                    .ToList();
+                completedUsers.AddRange(usersCompletedCategory); // Thêm danh sách UserId hoàn thành vào danh sách chính
+            }
+
+            
+            return completedUsers.Distinct().Count(); 
         }
+
+
+
+
+
+
+
+
         private async Task<int> GetTotalUsersGetCertificatesAsync(DateTime startDate, DateTime endDate, Guid sponsorId)
         {
             // Lấy danh sách CategoryId của Sponsor

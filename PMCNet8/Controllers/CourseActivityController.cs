@@ -48,7 +48,8 @@ namespace PMCNet8.Controllers
             }
 
             var courses = await _mediHub4RumContext.SponsorHubCourse
-               .Where(shc => shc.SponsorId == sponsorId)
+               .Where(shc => shc.SponsorId == sponsorId &&
+                              (shc.Category.HubCourse.CourseType == 0 || shc.CourseType == 1))
                .Select(shc => new CourseListItems
                {
                    Id = shc.CategoryId,

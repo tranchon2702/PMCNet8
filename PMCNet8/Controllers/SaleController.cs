@@ -178,7 +178,7 @@ public class SaleController : Controller
                         .Select(date => new
                         {
                             Label = date.ToString("dd/MM/yyyy"),
-                            Count = result.Count(r => r.ScanDate.Date == date.Date),
+                            Count = result.Count(r => r.ScanDate.Date == date.Date)*1000,
                             Points = result.Where(r => r.ScanDate.Date == date.Date).Sum(r => r.Points)
                         })
                         .Cast<object>()
@@ -192,7 +192,7 @@ public class SaleController : Controller
                         .Select(weekStart => new
                         {
                             Label = $"Tuần {CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(weekStart, CalendarWeekRule.FirstDay, DayOfWeek.Monday)}",
-                            Count = result.Count(r => r.ScanDate.Date >= weekStart && r.ScanDate.Date < weekStart.AddDays(7)),
+                            Count = result.Count(r => r.ScanDate.Date >= weekStart && r.ScanDate.Date < weekStart.AddDays(7))*1000,
                             Points = result.Where(r => r.ScanDate.Date >= weekStart && r.ScanDate.Date < weekStart.AddDays(7)).Sum(r => r.Points)
                         })
                         .Cast<object>()
@@ -206,7 +206,7 @@ public class SaleController : Controller
                         .Select(date => new
                         {
                             Label = date.ToString("MM/yyyy"),
-                            Count = result.Count(r => r.ScanDate.Month == date.Month && r.ScanDate.Year == date.Year),
+                            Count = result.Count(r => r.ScanDate.Month == date.Month && r.ScanDate.Year == date.Year)*1000,
                             Points = result.Where(r => r.ScanDate.Month == date.Month && r.ScanDate.Year == date.Year).Sum(r => r.Points)
                         })
                         .Cast<object>()
