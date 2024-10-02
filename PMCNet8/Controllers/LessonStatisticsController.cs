@@ -43,8 +43,7 @@ namespace PMCNet8.Controllers
             }
 
             var lessons = await _mediHub4RumContext.Topic
-                .Where(e => e.Category.HubCourse != null && e.Category.HubCourse.SponsorId == sponsorId &&
-                              (e.Category.HubCourse.CourseType == 0 || e.Category.HubCourse.CourseType == 1))
+                .Where(e => e.Category.HubCourse != null && e.Category.HubCourse.SponsorId == sponsorId)
                 .OrderBy(e => e.Order).ThenBy(t => t.Name)
                 .Select(t => new LessonListItem
                 {
