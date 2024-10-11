@@ -220,7 +220,7 @@ namespace PMCNet8.Controllers
                      .ToListAsync();
 
                 model.Watched = await _logActionContext.LogLesson
-                    .Where(e => lessonIds.Contains ( e.TopicId) && e.Status == "Access"
+                    .Where(e => lessonIds.Contains ( e.TopicId) 
                     && firstDayOfMonth <= e.DateAccess && e.DateAccess <= now)
                     .Select(e => e.UserId)
                     .Distinct()
@@ -262,7 +262,7 @@ namespace PMCNet8.Controllers
                      .ToListAsync();
 
                 model.Watched = await _logActionContext.LogLesson
-                    .Where(e => lessonIds.Contains(e.TopicId) && e.Status == "Access"
+                    .Where(e => lessonIds.Contains(e.TopicId)
                     && firstDayOfYear <= e.DateAccess && e.DateAccess <= now)
                     .Select(e => e.UserId)
                     .Distinct()
@@ -337,7 +337,7 @@ namespace PMCNet8.Controllers
 
 
                 model.Register = await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                    .Where(x => lessonIds.Contains(x.TopicId)
                              && firstDayOfMonth <= x.DateAccess && x.DateAccess <= now)
                     .Select(x => x.UserId)
                     .Distinct()
@@ -413,7 +413,7 @@ namespace PMCNet8.Controllers
                 model.FinishTime = completedUsers.Count;
 
                 model.Register = await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                    .Where(x => lessonIds.Contains(x.TopicId)
                              && firstDayOfYear <= x.DateAccess && x.DateAccess <= now)
                     .Select(x => x.UserId)
                     .Distinct()
@@ -496,7 +496,7 @@ namespace PMCNet8.Controllers
                 model.FinishTime = completedUsers.Count;
 
                 model.Study = await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                    .Where(x => lessonIds.Contains(x.TopicId)
                              && firstDayOfMonth <= x.DateAccess && x.DateAccess <= now)
                     .Select(x => x.UserId)
                     .Distinct()
@@ -573,7 +573,7 @@ namespace PMCNet8.Controllers
                 model.FinishTime = completedUsers.Count;
 
                 model.Study = await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                    .Where(x => lessonIds.Contains(x.TopicId) 
                              && firstDayOfYear <= x.DateAccess && x.DateAccess <= now)
                     .Select(x => x.UserId)
                     .Distinct()
@@ -613,7 +613,7 @@ namespace PMCNet8.Controllers
                  .ToListAsync();
                 // Đếm số lượng UserId duy nhất
                 return await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                    .Where(x => lessonIds.Contains(x.TopicId) 
                              && firstDayOfMonth <= x.DateAccess && x.DateAccess <= now)
                     .Select(x => x.UserId)
                     .Distinct()
@@ -644,7 +644,7 @@ namespace PMCNet8.Controllers
                  .ToListAsync();
                 // Đếm số lượng UserId duy nhất
                 return await _logActionContext.LogLesson
-                    .Where(x => lessonIds.Contains(x.TopicId) && x.Status == "Access"
+                    .Where(x => lessonIds.Contains(x.TopicId) 
                              && firstDayOfYear <= x.DateAccess && x.DateAccess <= now)
                     .Select( x => x.UserId  )
                     .Distinct()

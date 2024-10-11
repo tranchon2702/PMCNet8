@@ -98,7 +98,7 @@
             if (typeof pieData !== 'undefined' && pieData !== null &&
                 typeof achieveTargets !== 'undefined' && achieveTargets !== null) {
                 drawPieChart();
-                drawLineChart();
+                drawChart();
             } else {
                 console.error("Chart data is not available", { pieData, achieveTargets });
             }
@@ -226,7 +226,10 @@
             var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
             chart.draw(data, options);
         }
-
+        function getAllDataTableData(tableId) {
+            var table = $('#pharmacistTable' + tableId).DataTable();
+            return table.rows().data().toArray();
+        }
         function initializeDataTable() {
             if ($.fn.DataTable.isDataTable('#pharmacistTable')) {
                 $('#pharmacistTable').DataTable().destroy();
@@ -236,7 +239,7 @@
                 "lengthChange": true,
                 "searching": true,
                 "ordering": false,
-                "order": [[5, "desc"]],
+                "order": [[4, "desc"]],
                 "info": true,
                 "autoWidth": false,
                 "responsive": true,
@@ -258,7 +261,7 @@
                 },
                 "columnDefs": [
                     {
-                        "targets": 5,
+                        "targets": 4,
                         "type": "date",
                         "render": function (data, type, row) {
                             if (type === "sort" || type === "type") {

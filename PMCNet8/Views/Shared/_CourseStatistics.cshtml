@@ -14,10 +14,10 @@
                                 @:Khóa học có cấp chứng chỉ
                                 break;
                             case 1:
-                                @:Khóa học cập nhật kiến thức
+                                @:Khóa học không cấp chứng chỉ
                                 break;
                             case 2:
-                                @:Khóa học không cấp chứng chỉ
+                                @:Khóa học cập nhật kiến thức
                                 break;
                         }
                     </span>
@@ -133,7 +133,6 @@
                                 <th>Số điện thoại</th>
                                 <th>Đơn vị công tác</th>
                                 <th>Địa chỉ</th>
-                                <th>Đã xác thực</th>
                                 <th>Thời gian hoàn thành</th>
                             </tr>
                         </thead>
@@ -145,7 +144,6 @@
                                     <td>@pharmacist.SoDienThoai</td>
                                     <td>@pharmacist.DonViCongTac</td>
                                     <td>@pharmacist.DiaChi</td>
-                                    <td>@(pharmacist.DaXacThuc ? "Đã xác thực" : "Chưa xác thực")</td>
                                     <td>@(pharmacist.NgayHoanThanh.ToString("dd/MM/yyyy HH:mm"))</td>
                                 </tr>
                             }
@@ -170,7 +168,7 @@
     });
     function getAllDataTableData(tableId) {
         var table = $('#' + tableId).DataTable();
-        return table.data().toArray();
+        return table.rows().data().toArray();
     }
 
     $("#exportCompletedButton").click(function () {

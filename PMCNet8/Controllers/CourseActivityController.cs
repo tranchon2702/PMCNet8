@@ -106,7 +106,6 @@ namespace PMCNet8.Controllers
                         Lesson = topic.Name,
                         Joins = topicLogs.Select(l => l.UserId).Distinct().Count(userId => topicLogs.Any(l => l.UserId == userId)),
                         CompleteTest = topicLogs.Where(l => l.Status == "PostTest").Select(ll => ll.UserId).Distinct().Count(),
-                        //FailedTest = topicLogs.Count(l => l.Status == "PostTest" && !IsPassingScore(l.Result))
                     };
                     if (lesson.Joins < lesson.CompleteTest) lesson.CompleteTest = lesson.Joins;
                     lesson.FailedTest = lesson.Joins - lesson.CompleteTest;
