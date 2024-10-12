@@ -274,18 +274,17 @@ public class CourseStatisticsController : Controller
                     e.TargetJoin
                 })
                 .FirstOrDefaultAsync();
-
-            if (courseInfo != null)
+            if (courseInfo != null && courseInfo.TargetStartDate.HasValue && courseInfo.TargetEndDate.HasValue)
             {
                 result.TargetStartDate = courseInfo.TargetStartDate;
                 result.TargetEndDate = courseInfo.TargetEndDate;
                 result.TargetFinish = courseInfo.TargetFinish;
                 result.TargetJoin = courseInfo.TargetJoin;
+                result.CurrentDate = DateTime.Now.Date;
             }
-
-            // Nếu không có dữ liệu trong SponsorHubCourse, lấy từ Category
-            if (!result.TargetStartDate.HasValue || !result.TargetEndDate.HasValue)
+            else
             {
+                // Nếu không có dữ liệu trong SponsorHubCourse, lấy từ Category
                 var categoryDate = await _mediHub4RumContext.Category
                     .Where(e => e.Id == courseId)
                     .Select(e => e.DateCreated)
@@ -294,12 +293,6 @@ public class CourseStatisticsController : Controller
                 if (categoryDate != null)
                 {
                     result.TargetStartDate = categoryDate;
-                    result.TargetEndDate = DateTime.Now.Date;
-                }
-                else
-                {
-                    // Nếu không có dữ liệu, sử dụng ngày hiện tại
-                    result.TargetStartDate = DateTime.Now.Date.AddDays(-30); // Giả sử khóa học bắt đầu 30 ngày trước
                     result.TargetEndDate = DateTime.Now.Date;
                 }
             }
@@ -356,6 +349,46 @@ public class CourseStatisticsController : Controller
                 result.TotalWatchedAllVideos[point] = usersWatchedAllVideos;
             }
 
+             if (result.CurrentDate.HasValue)
+            {
+                var currentDate = result.CurrentDate.Value;
+
+                // Tính tổng số người hoàn thành đến thời điểm hiện tại
+                result.TotalFinishs[currentDate] = await _mediHub4RumContext.SponsorHubCourseFinish
+                    .Where(e => e.CategoryId == courseId && e.FinishDate < currentDate)
+                    .Select(e => e.UserId)
+                    .Distinct()
+                    .CountAsync();
+
+                // Tính tổng số người vượt qua bài kiểm tra đến thời điểm hiện tại
+                result.TotalPassed[currentDate] = await _mediHub4RumContext.SponsorHubCourseFinish
+                    .Where(e => e.CategoryId == courseId && e.FinishDate < currentDate && e.IsPassed == true)
+                    .Select(e => e.UserId)
+                    .Distinct()
+                    .CountAsync();
+
+                // Tính tổng số người tham gia khóa học đến thời điểm hiện tại
+                result.TotalEnters[currentDate] = await _logActionDbContext.LogLesson
+                    .Where(ll => lessonIds.Contains(ll.TopicId) && ll.DateAccess < currentDate)
+                    .Select(l => l.UserId)
+                    .Distinct()
+                    .CountAsync();
+
+                // Tính tổng số người xem hết video đến thời điểm hiện tại
+                var usersWatchedAllVideos = await _logActionDbContext.LogLesson
+                    .Where(ll => lessonIds.Contains(ll.TopicId) && ll.DateAccess < currentDate)
+                    .GroupBy(ll => ll.UserId)
+                    .Select(g => new
+                    {
+                        UserId = g.Key,
+                        DistinctLessonCount = g.Select(ll => ll.TopicId).Distinct().Count()
+                    })
+                    .Where(u => u.DistinctLessonCount == lessonIds.Count)
+                    .CountAsync();
+
+                result.TotalWatchedAllVideos[currentDate] = usersWatchedAllVideos;
+            }
+
             return result;
         }
         catch (Exception ex)
@@ -364,7 +397,6 @@ public class CourseStatisticsController : Controller
             throw;
         }
     }
-
 
     private List<DateTime> CalculateTimePoints(DateTime start, DateTime end)
     {

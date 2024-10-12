@@ -12,5 +12,6 @@
         public Dictionary<DateTime, int> TotalWatchedAllVideos { get; set; }
 
         public Dictionary<DateTime, int> TotalJoins { get; set; }
+        public DateTime? CurrentDate { get; set; }
     }
 }
