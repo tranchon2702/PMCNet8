@@ -54,7 +54,6 @@
         $(document).ready(function () {
             initializeDatePickers();
             setupEventHandlers();
-            setDefaultEndDate();
             loadInitialData();
         });
 
@@ -66,16 +65,6 @@
             });
         }
 
-        function setDefaultEndDate() {
-            var today = new Date();
-            var dd = String(today.getDate()).padStart(2, '0');
-            var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
-            var yyyy = today.getFullYear();
-
-            today = dd + '/' + mm + '/' + yyyy;
-            $('#endDate').val(today);
-        }
-        $('#logoutButton').click(handleLogout);
         function setupEventHandlers() {
             $('#viewButton').click(function () {
                 var startDate = $('#startDate').val();
@@ -83,29 +72,41 @@
                 loadSaleData(startDate, endDate);
             });
 
+            // Khi người dùng nhấn vào các nút chuyển đổi giữa các nhóm (Ngày, Tuần, Tháng)
             $(document).on('click', '.btn-group .btn', function () {
                 $('.btn-group .btn').removeClass('active');
                 $(this).addClass('active');
                 if (selectedProductId) {
-                    loadChartData();
+                    loadChartData(); // Gọi lại dữ liệu biểu đồ mà không thay đổi endDate
                 }
             });
 
+            // Khi người dùng chọn sản phẩm trong bảng, chọn sản phẩm đầu tiên và tải dữ liệu biểu đồ
             $(document).on('click', '#productTable tbody tr:not(:last-child)', function () {
                 selectedProductId = $(this).data('product-id');
                 selectedProductName = $(this).data('product-name');
                 loadChartData();
             });
 
+            // Khi người dùng thay đổi endDate, cập nhật dữ liệu biểu đồ
             $('#endDate').change(function () {
                 if (selectedProductId) {
-                    loadChartData();
+                    loadChartData(); // Tải lại biểu đồ khi endDate thay đổi
                 }
             });
         }
 
+        // Chỉ gọi hàm này khi lần đầu tải trang
         function loadInitialData() {
             var endDate = $('#endDate').val();
+            if (!endDate) {
+                var today = new Date();
+                var dd = String(today.getDate()).padStart(2, '0');
+                var mm = String(today.getMonth() + 1).padStart(2, '0');
+                var yyyy = today.getFullYear();
+                endDate = dd + '/' + mm + '/' + yyyy;
+                $('#endDate').val(endDate);
+            }
             loadSaleData(null, endDate);
         }
 
@@ -116,24 +117,23 @@
                 type: 'GET',
                 success: function (result) {
                     $('#saleDataContainer').html(result);
-                    // Automatically select the first product and load its chart
+                    // Tự động chọn sản phẩm đầu tiên và tải biểu đồ của nó
                     var firstProduct = $('#productTable tbody tr:first');
                     if (firstProduct.length > 0) {
                         selectedProductId = firstProduct.data('product-id');
                         selectedProductName = firstProduct.data('product-name');
-                        loadChartData();
+                        loadChartData(); // Tải biểu đồ cho sản phẩm đầu tiên
                     }
                 },
                 error: function (error) {
-                    console.log('Error:', error);
                     $('#saleDataContainer').html('<p>Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.</p>');
                 }
             });
         }
 
         function loadChartData() {
-            var endDate = $('#endDate').val();
-            var groupBy = $('.btn-group .btn.active').data('group-by');
+            var endDate = $('#endDate').val(); // Sử dụng giá trị endDate hiện tại
+            var groupBy = $('.btn-group .btn.active').data('group-by'); // Nhóm biểu đồ theo ngày, tuần, hoặc tháng
 
             if (!selectedProductId) {
                 console.log('Không có sản phẩm nào được chọn');
@@ -144,26 +144,19 @@
                 url: '@Url.Action("GetChartData", "Sale")',
                 data: {
                     endDate: endDate,
-                    groupBy: groupBy,
-                    productId: selectedProductId
+                    groupBy: groupBy
                 },
                 success: function (data) {
                     updateChart(data.chartData, groupBy, selectedProductName);
                 },
                 error: function (error) {
-                    console.error('Error loading chart data:', error);
-                    if (error.responseJSON && error.responseJSON.message) {
-                        alert(error.responseJSON.message);
-                    } else {
-                        alert('Có lỗi xảy ra khi tải dữ liệu biểu đồ. Vui lòng thử lại.');
-                    }
+                    alert('Có lỗi xảy ra khi tải dữ liệu biểu đồ. Vui lòng thử lại.');
                 }
             });
         }
 
         function updateChart(data, groupBy, productName) {
             const ctx = document.getElementById('saleChart').getContext('2d');
-
             if (saleChart) {
                 saleChart.destroy();
             }
@@ -221,21 +214,19 @@
                         tooltip: {
                             mode: 'index',
                             intersect: false
-                        },
-                        legend: {
-                            position: 'top',
                         }
                     }
                 }
             });
         }
-         
+
         function displayNoDataMessage(ctx) {
             ctx.font = '20px Arial';
             ctx.textAlign = 'center';
             ctx.fillStyle = '#000';
             ctx.fillText('Không có dữ liệu để hiển thị', ctx.canvas.width / 2, ctx.canvas.height / 2);
         }
+
         function handleLogout(e) {
             e.preventDefault();
             $.ajax({

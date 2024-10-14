@@ -45,6 +45,9 @@ namespace Data.Data
         public DbSet<SponsorCampaignProductCode> SponsorCampaignProductCode { get; set; }
 
         public DbSet<SponsorCampaignProductScan> SponsorCampaignProductScan { get; set; }
+        public DbSet<DmProvince> DmProvince { get; set; }
+        public DbSet<DmWard> DmWard { get; set; }
+        public DbSet<DmDistrict> DmDistrict { get; set; }
     }
 
 }

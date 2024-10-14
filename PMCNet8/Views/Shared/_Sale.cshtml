@@ -108,93 +108,31 @@ else
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
     $(document).ready(function () {
+        
         // Sự kiện khi nhấn vào nút xuất file Excel
         $("#exportProductsButton").click(function () {
-            exportTableToExcel("productTable", "danh_sach_duoc_si_da_hoc_bai.xlsx");
+            exportDataToExcel();
         });
 
-        // Hàm xuất bảng thành file Excel
-        async function exportTableToExcel(tableId, fileName) {
-            // Lấy dữ liệu từ bảng
-            const headers = Array.from($('#' + tableId + ' thead th')).map(th => th.textContent.trim());
-            const rows = Array.from($('#' + tableId + ' tbody tr')).map(tr => {
-                return Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim());
-            });
+        function exportDataToExcel() {
+            var startDate = $('#startDate').val();
+            var endDate = $('#endDate').val();
 
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Học viên hoàn thành');
+            // Nếu không có endDate, đặt mặc định là ngày hiện tại
+            if (!endDate) {
+                endDate = new Date().toLocaleDateString('vi-VN');
+            }
 
-            // Thêm hàng tiêu đề
-            worksheet.addRow(headers);
+            // Tạo URL cho API
+            var url = '@Url.Action("ExportSaleDataToExcel", "Sale")' + '?startDate=' + startDate + '&endDate=' + endDate;
 
-            // Thêm dữ liệu từ bảng vào file Excel
-            rows.forEach(row => {
-                worksheet.addRow(row);
-            });
-
-            // Định dạng hàng tiêu đề
-            const headerRow = worksheet.getRow(1);
-            headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
-            headerRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: '4472C4' }
-            };
-            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-            // Định dạng các cột và tự động điều chỉnh kích thước
-            worksheet.columns.forEach((column, index) => {
-                let maxLength = headers[index].length;
-                column.eachCell({ includeEmpty: true }, (cell) => {
-                    const columnLength = cell.value ? cell.value.toString().length : 10;
-                    if (columnLength > maxLength) {
-                        maxLength = columnLength;
-                    }
-                });
-                column.width = maxLength < 10 ? 10 : maxLength + 2;
-            });
-
-            // Thêm đường viền cho tất cả các ô
-            worksheet.eachRow((row) => {
-                row.eachCell((cell) => {
-                    cell.border = {
-                        top: { style: 'thin' },
-                        left: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        right: { style: 'thin' }
-                    };
-                });
-            });
-
-            // Cố định hàng tiêu đề khi cuộn
-            worksheet.views = [
-                { state: 'frozen', ySplit: 1 }
-            ];
-
-            // Thêm ngày xuất file
-            const exportDate = new Date().toLocaleString('vi-VN');
-            worksheet.addRow([`Ngày xuất: ${exportDate}`]);
-
-            // Tạo file Excel và tự động tải xuống
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            a.click();
-            window.URL.revokeObjectURL(url);
-
-            // Hiển thị thông báo thành công
-            Swal.fire({
-                title: 'Xuất file thành công!',
-                text: 'File Excel đã được tạo và tải xuống.',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
+            // Sử dụng window.location.href để tải file trực tiếp từ server
+            window.location.href = url;
         }
     });
 </script>
+
+
+
