@@ -45,6 +45,7 @@
 @section Scripts {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let saleChart;
@@ -109,24 +110,46 @@
             }
             loadSaleData(null, endDate);
         }
-
-        function loadSaleData(startDate = null, endDate = null) {
+                function loadSaleData(startDate = null, endDate = null) {
             $.ajax({
                 url: '@Url.Action("GetSaleData", "Sale")',
                 data: { startDate: startDate, endDate: endDate },
                 type: 'GET',
                 success: function (result) {
                     $('#saleDataContainer').html(result);
-                    // Tự động chọn sản phẩm đầu tiên và tải biểu đồ của nó
                     var firstProduct = $('#productTable tbody tr:first');
                     if (firstProduct.length > 0) {
                         selectedProductId = firstProduct.data('product-id');
                         selectedProductName = firstProduct.data('product-name');
-                        loadChartData(); // Tải biểu đồ cho sản phẩm đầu tiên
+                        loadChartData();
                     }
                 },
-                error: function (error) {
-                    $('#saleDataContainer').html('<p>Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.</p>');
+                error: function (xhr, status, error) {
+                    console.error('Error details:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText
+                    });
+
+                    let errorMessage = 'Có lỗi xảy ra khi tải dữ liệu.';
+
+                    if (xhr.responseText) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            errorMessage = `${response.message}<br/>
+                                          <small class="text-danger">${response.error}</small>`;
+                            console.error('Server error:', response.error);
+                            console.error('Stack trace:', response.stackTrace);
+                        } catch (e) {
+                            console.error('Error parsing response:', xhr.responseText);
+                        }
+                    }
+
+                    $('#saleDataContainer').html(`
+                        <div class="alert alert-danger">
+                            ${errorMessage}
+                        </div>
+                    `);
                 }
             });
         }
@@ -227,23 +250,25 @@
             ctx.fillText('Không có dữ liệu để hiển thị', ctx.canvas.width / 2, ctx.canvas.height / 2);
         }
 
-        function handleLogout(e) {
-            e.preventDefault();
-            $.ajax({
-                url: '@Url.Action("Logout", "Account")',
-                type: 'POST',
-                success: function (result) {
-                    if (result.success) {
-                        window.location.href = result.redirectUrl;
-                    } else {
-                        console.log('Logout failed');
+        $(document).ready(function () {
+            $('#logoutButton').click(function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: '@Url.Action("Logout", "Account")',
+                    type: 'POST',
+                    success: function (result) {
+                        if (result.success) {
+                            window.location.href = result.redirectUrl;
+                        } else {
+                            console.log('Logout failed');
+                        }
+                    },
+                    error: function (error) {
+                        console.log('Logout error:', error);
                     }
-                },
-                error: function (error) {
-                    console.log('Logout error:', error);
-                }
+                });
             });
-        }
+        });
 
     </script>
 }

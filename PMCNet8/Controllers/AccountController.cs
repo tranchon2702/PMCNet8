@@ -64,7 +64,6 @@ public class AccountController : Controller
                     }
                     else
                     {
-                        _logger.LogWarning($"Sponsor not found for SponsorUser with UserId: {user.Id}");
                         ModelState.AddModelError("", "Không tìm thấy thông tin nhà tài trợ.");
                     }
                 }

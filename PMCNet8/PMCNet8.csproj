@@ -15,7 +15,7 @@
     <PackageReference Include="RestSharp" Version="111.4.0" />
   </ItemGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <ProjectReference Include="..\Data\Data.csproj" />
   </ItemGroup>
 

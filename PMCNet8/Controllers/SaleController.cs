@@ -51,9 +51,15 @@ public class SaleController : Controller
     {
         try
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorIdFromSession = HttpContext.Session.GetString("SponsorId");
+            if (string.IsNullOrEmpty(sponsorIdFromSession))
             {
-                return BadRequest("Invalid SponsorId");
+                return BadRequest("SponsorId not found in session");
+            }
+
+            if (!Guid.TryParse(sponsorIdFromSession, out Guid sponsorId))
+            {
+                return BadRequest("Invalid SponsorId format");
             }
 
             DateTime? parsedStartDate = null;
@@ -61,11 +67,22 @@ public class SaleController : Controller
 
             if (!string.IsNullOrEmpty(startDate))
             {
-                parsedStartDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                if (!DateTime.TryParseExact(startDate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sDate))
+                {
+                    _logger.LogError($"Invalid start date format: {startDate}");
+                    return BadRequest("Invalid start date format");
+                }
+                parsedStartDate = sDate;
             }
+
             if (!string.IsNullOrEmpty(endDate))
             {
-                parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                if (!DateTime.TryParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var eDate))
+                {
+                    _logger.LogError($"Invalid end date format: {endDate}");
+                    return BadRequest("Invalid end date format");
+                }
+                parsedEndDate = eDate;
             }
             else
             {
@@ -98,7 +115,7 @@ public class SaleController : Controller
                         from scan in scanGroup.DefaultIfEmpty()
                         where (parsedStartDate == null || parsedEndDate == null) ||
                               (scan == null || (scan.ScanDate.Date >= parsedStartDate.Value.Date && scan.ScanDate.Date <= parsedEndDate.Value.Date))
-                        group new { product, campaign, scan } by new { product.Id, product.Name, campaign.Point } into g
+                        group new { product, campaign, scan } by new { product.Id, product.Name, Point = campaign != null ? campaign.Point : 0 } into g
                         select new SponsorProductModel
                         {
                             ProductId = g.Key.Id,
@@ -133,8 +150,17 @@ public class SaleController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while fetching sponsor product activity data");
-            return StatusCode(500, "An error occurred while processing your request");
+
+            _logger.LogError(ex, "Error details: {Message}, Stack trace: {StackTrace}",
+                ex.Message,
+                ex.StackTrace);
+
+            return StatusCode(500, new
+            {
+                message = "An error occurred while processing your request",
+                error = ex.Message,
+                stackTrace = ex.StackTrace
+            });
         }
     }
 
