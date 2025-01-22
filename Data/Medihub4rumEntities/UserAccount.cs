@@ -14,6 +14,8 @@ namespace Data.Medihub4rumEntities
         public Guid Id { get; set; }
         public string UserName { get; set; }
         public string Password { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
 
         // Thêm collection navigation property cho SponsorUser
         public virtual ICollection<SponsorUser> SponsorUsers { get; set; }

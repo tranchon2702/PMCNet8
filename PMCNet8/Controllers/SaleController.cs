@@ -1,12 +1,16 @@
 ﻿using Data.Data;
 using Data.Medihub4rumEntities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using PMCNet8.Models;
 using System.Globalization;
 
-public class SaleController : Controller
+namespace PMCNet8.Controllers
+{
+    [Authorize]
+    public class SaleController : BaseController
 {
     private readonly Medihub4rumDbContext _mediHub4RumContext;
     private readonly MedihubSCAppDbContext _scAppContext;
@@ -21,19 +25,26 @@ public class SaleController : Controller
 
     public IActionResult Index()
     {
-        return View();
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+            return View();
     }
     [HttpGet]
     public async Task<IActionResult> GetProducts()
     {
         try
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
-            {
-                return BadRequest("Invalid SponsorId");
-            }
+                var sponsorId = GetSponsorId();
+                if (sponsorId == Guid.Empty)
+                {
+                    return BadRequest("Invalid SponsorId");
+                }
 
-            var products = await _mediHub4RumContext.SponsorProduct
+
+                var products = await _mediHub4RumContext.SponsorProduct
                 .Where(sp => sp.SponsorId == sponsorId)
                 .Select(sp => new { sp.Id, sp.Name })
                 .ToListAsync();
@@ -51,18 +62,13 @@ public class SaleController : Controller
     {
         try
         {
-            var sponsorIdFromSession = HttpContext.Session.GetString("SponsorId");
-            if (string.IsNullOrEmpty(sponsorIdFromSession))
-            {
-                return BadRequest("SponsorId not found in session");
-            }
+                var sponsorId = GetSponsorId();
+                if (sponsorId == Guid.Empty)
+                {
+                    return BadRequest("Invalid SponsorId");
+                }
 
-            if (!Guid.TryParse(sponsorIdFromSession, out Guid sponsorId))
-            {
-                return BadRequest("Invalid SponsorId format");
-            }
-
-            DateTime? parsedStartDate = null;
+                DateTime? parsedStartDate = null;
             DateTime? parsedEndDate = null;
 
             if (!string.IsNullOrEmpty(startDate))
@@ -169,14 +175,15 @@ public class SaleController : Controller
     {
         try
         {
-            // Lấy sponsorId từ session
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
-            {
-                return BadRequest("Invalid SponsorId");
-            }
+                var sponsorId = GetSponsorId();
+                if (sponsorId == Guid.Empty)
+                {
+                    return BadRequest("Invalid SponsorId");
+                }
 
-            // Thiết lập ngày kết thúc mặc định là ngày hiện tại nếu không có endDate
-            DateTime parsedEndDate = string.IsNullOrEmpty(endDate)
+
+                // Thiết lập ngày kết thúc mặc định là ngày hiện tại nếu không có endDate
+                DateTime parsedEndDate = string.IsNullOrEmpty(endDate)
                 ? DateTime.Now
                 : DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture);
 
@@ -334,12 +341,14 @@ public class SaleController : Controller
     {
         try
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
-            {
-                return BadRequest("Invalid SponsorId");
-            }
+                var sponsorId = GetSponsorId();
+                if (sponsorId == Guid.Empty)
+                {
+                    return BadRequest("Invalid SponsorId");
+                }
 
-            DateTime parsedEndDate;
+
+                DateTime parsedEndDate;
             if (!DateTime.TryParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedEndDate))
             {
                 return BadRequest("Invalid end date format");
@@ -430,5 +439,6 @@ public class SaleController : Controller
         }
     }
 
+}
 }
 

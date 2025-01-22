@@ -11,10 +11,12 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Globalization;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PMCNet8.Controllers
 {
-    public class CourseSurveyController : Controller
+    [Authorize]
+    public class CourseSurveyController : BaseController
     {
         private readonly LogActionDbContext _logActionDbContext;
         private readonly Medihub4rumDbContext _mediHub4RumContext;
@@ -33,7 +35,11 @@ namespace PMCNet8.Controllers
         {
             try
             {
-                var sponsorId = Guid.Parse(HttpContext.Session.GetString("SponsorId"));
+                var sponsorId = GetSponsorId();
+                if (sponsorId == Guid.Empty)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
 
                 var courses = await _mediHub4RumContext.SponsorHubCourse
                     .Where(shc => shc.SponsorId == sponsorId &&

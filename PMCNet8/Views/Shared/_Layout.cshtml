@@ -306,7 +306,7 @@
             <!-- Left navbar links -->
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+                    <span class="brand-text font-weight-light">@User.FindFirst("SponsorName")?.Value</span>
                 </li>
             </ul>
 
@@ -339,7 +339,8 @@
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                         @{
-                            bool hasHub = bool.Parse(Context.Session.GetString("HasHub") ?? "true");
+                            var hasHub = User.FindFirst("HasHub")?.Value == "True";
+                            var sponsorName = User.FindFirst("SponsorName")?.Value;
                         }
                         @if (hasHub)
                         {
@@ -413,3 +414,16 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+<script>
+    $("#logoutButton").click(function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: '/Account/Logout',
+            type: 'POST',
+            success: function(response) {
+                window.location.href = response.redirectUrl;
+            }
+        });
+    });
+</script>

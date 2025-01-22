@@ -12,8 +12,8 @@ using System.Runtime.ConstrainedExecution;
 
 namespace PMCNet8.Controllers
 {
-
-    public class HomeController : Controller
+    [Authorize]
+    public class HomeController : BaseController
     {
         private readonly LogActionDbContext _logActionContext;
         private readonly Medihub4rumDbContext _mediHub4RumContext;
@@ -29,11 +29,11 @@ namespace PMCNet8.Controllers
 
         public async Task<IActionResult> Index()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();  
+            if (sponsorId == Guid.Empty)
             {
-                return BadRequest("Invalid SponsorId");
+                return RedirectToAction("Login", "Account");
             }
-
             var model = new HomeViewModel
             {
                 AvailableCourseTypes = await GetAvailableCourseTypesAsync(sponsorId)
@@ -53,7 +53,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/participantCount/month")]
         public async Task<IActionResult> GetParticipantCountForMonth()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -64,7 +65,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/participantCount/year")]
         public async Task<IActionResult> GetParticipantCountForYear()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -75,7 +77,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalCertificatesCategory/month")]
         public async Task<IActionResult> GetTotalCertificatesCategoryMonth()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -87,7 +90,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalCertificatesCategory/year")]
         public async Task<IActionResult> GetTotalCertificatesCategoryYear()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -99,7 +103,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalNonCertificatesCategory/month")]
         public async Task<IActionResult> GetTotalNonCertificatesCategoryMonth()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -111,7 +116,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalNonCertificatesCategory/year")]
         public async Task<IActionResult> GetTotalNonCertificatesCategoryYear()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -123,7 +129,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalUpdateCategory/month")]
         public async Task<IActionResult> GetTotalUpdateCategoryMonth()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -135,7 +142,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalUpdateCategory/year")]
         public async Task<IActionResult> GetTotalUpdateCategoryYear()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -147,7 +155,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/completedCourses/month")]
         public async Task<IActionResult> GetCompletedCoursesForMonth()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -160,7 +169,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/completedCourses/year")]
         public async Task<IActionResult> GetCompletedCoursesForYear()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -172,7 +182,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalUserGetCertificates/month")]
         public async Task<IActionResult> GetTotalUsersGetCertificatesForMonth()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }
@@ -184,7 +195,8 @@ namespace PMCNet8.Controllers
         [HttpGet("api/totalUserGetCertificates/year")]
         public async Task<IActionResult> GetTotalUsersGetCertificatesForYear()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
                 return BadRequest("Invalid SponsorId");
             }

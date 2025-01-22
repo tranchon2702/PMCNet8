@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using Data.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -8,7 +9,8 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace PMCNet8.Controllers
 {
-    public class LessonStatisticsController : Controller
+    [Authorize]
+    public class LessonStatisticsController : BaseController
     {
         private readonly LogActionDbContext _logActionDbContext;
         private readonly Medihub4rumDbContext _mediHub4RumContext;
@@ -36,12 +38,12 @@ namespace PMCNet8.Controllers
 
         public async Task<IActionResult> Index()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();
+            if (sponsorId == Guid.Empty)
             {
-                //return BadRequest("Invalid SponsorId");
                 return RedirectToAction("Login", "Account");
             }
-
+            
             var lessons = await _mediHub4RumContext.Topic
                 .Where(e => e.Category.HubCourse != null && e.Category.HubCourse.SponsorId == sponsorId)
                 .OrderBy(e => e.Order).ThenBy(t => t.Name)
@@ -71,11 +73,12 @@ namespace PMCNet8.Controllers
                     parsedEndDate = DateTime.ParseExact(endDate, "dd/MM/yyyy", CultureInfo.InvariantCulture).AddDays(1).AddSeconds(-1);
                 }
 
-                if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+                var sponsorId = GetSponsorId();
+                if (sponsorId == Guid.Empty)
                 {
                     return BadRequest("Invalid SponsorId");
                 }
-
+               
                 var lesson = await _mediHub4RumContext.Topic
                 .Where(e => e.Category.HubCourse != null && e.Category.HubCourse.SponsorId == sponsorId && e.Id == lessonId)
                 .Select(t => new LessonListItem

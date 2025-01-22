@@ -1,93 +1,162 @@
-﻿using Data.Data;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
+﻿using Data.Authentication.Models;
+using Data.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
-public class AccountController : Controller
+namespace PMCNet8.Controllers
 {
-    private readonly Medihub4rumDbContext _context;
-    private readonly ILogger<AccountController> _logger;
-
-    public AccountController(Medihub4rumDbContext context, ILogger<AccountController> logger)
+    public class AccountController : Controller
     {
-        _context = context;
-        _logger = logger;
-    }
+        private readonly Medihub4rumDbContext _context;
+        private readonly ILogger<AccountController> _logger;
+        private readonly JwtSettings _jwtSettings;
 
-    [HttpGet]
-    public IActionResult Login()
-    {
-        if (!string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+        public AccountController(
+            Medihub4rumDbContext context,
+            ILogger<AccountController> logger,
+            IOptions<JwtSettings> jwtSettings)
         {
-            return RedirectToAction("Index", "Home");
+            _context = context;
+            _logger = logger;
+            _jwtSettings = jwtSettings.Value;
         }
-        return View();
-    }
 
-    [HttpPost]
-    public async Task<IActionResult> Login(string userName, string password)
-    {
-        try
+        [HttpGet]
+        public IActionResult Login()
         {
-            var user = await _context.UserAccount
-                .Include(u => u.SponsorUsers)
-                    .ThenInclude(su => su.Sponsor)
-                .FirstOrDefaultAsync(u => u.UserName == userName && u.Password == password);
-            if (user != null)
+            if (User.Identity.IsAuthenticated)
             {
+                var hasHub = bool.Parse(User.FindFirst("HasHub")?.Value ?? "false");
+                return RedirectToAction("Index", hasHub ? "Home" : "Sale");
+            }
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Login(string userName, string password)
+        {
+            try
+            {
+                var user = await _context.UserAccount
+                    .Include(u => u.SponsorUsers)
+                        .ThenInclude(su => su.Sponsor)
+                    .FirstOrDefaultAsync(u => u.UserName == userName &&
+                                            u.Password == password);
+
+                if (user == null)
+                {
+                    ModelState.AddModelError("", "Tên đăng nhập hoặc mật khẩu không đúng");
+                    return View();
+                }
+
                 var sponsorUser = user.SponsorUsers.FirstOrDefault();
-                if (sponsorUser != null)
+                if (sponsorUser?.Sponsor == null)
                 {
-                    var sponsor = sponsorUser.Sponsor;
-                    if (sponsor != null)
-                    {
-                        HttpContext.Session.SetString("UserId", user.Id.ToString());
-                        HttpContext.Session.SetString("SponsorId", sponsor.Id.ToString());
-                        HttpContext.Session.SetString("SponsorName", sponsor.Name);
-                        // Kiểm tra xem Sponsor có Hub hay không
-                        var hasHub = await _context.SponsorHub.AnyAsync(sh => sh.SponsorId == sponsor.Id);
-                        HttpContext.Session.SetString("HasHub", hasHub.ToString());
+                    ModelState.AddModelError("", "Tài khoản không phải là nhà tài trợ");
+                    return View();
+                }
 
-                        if (hasHub)
-                        {
-                            return RedirectToAction("Index", "Home");
-                        }
-                        else
-                        {
-                            return RedirectToAction("Index", "Sale");
-                        }
-                    }
-                    else
-                    {
-                        ModelState.AddModelError("", "Không tìm thấy thông tin nhà tài trợ.");
-                    }
-                }
-                else
+                var hasHub = await _context.SponsorHub
+                    .AnyAsync(sh => sh.SponsorId == sponsorUser.Sponsor.Id);
+
+                // Generate JWT Token
+                var claims = new List<Claim>
                 {
-                    ModelState.AddModelError("", "Tài khoản không phải là nhà tài trợ.");
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim("SponsorId", sponsorUser.Sponsor.Id.ToString()),
+                    new Claim("SponsorName", sponsorUser.Sponsor.Name),
+                    new Claim("HasHub", hasHub.ToString())
+                };
+
+                var key = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                var token = new JwtSecurityToken(
+                    issuer: _jwtSettings.Issuer,
+                    audience: _jwtSettings.Audience,
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationInMinutes),
+                    signingCredentials: creds
+                );
+
+                var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+                var refreshToken = GenerateRefreshToken();
+
+                // Save refresh token
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationInDays);
+                await _context.SaveChangesAsync();
+
+                // Set cookies
+                SetTokenCookies(accessToken, refreshToken);
+
+                return RedirectToAction("Index", hasHub ? "Home" : "Sale");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi trong quá trình đăng nhập");
+                ModelState.AddModelError("", "Đã xảy ra lỗi trong quá trình đăng nhập");
+                return View();
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _context.UserAccount.FindAsync(Guid.Parse(userId));
+                if (user != null)
+                {
+                    user.RefreshToken = null;
+                    user.RefreshTokenExpiryTime = null;
+                    await _context.SaveChangesAsync();
                 }
             }
-            else
-            {
-                ModelState.AddModelError("", "Tên đăng nhập hoặc mật khẩu không đúng.");
-            }
+
+            RemoveTokenCookies();
+            return Json(new { success = true, redirectUrl = Url.Action("Login", "Account") });
         }
-        catch (Exception ex)
+
+        private string GenerateRefreshToken()
         {
-            _logger.LogError(ex, "Lỗi xảy ra trong quá trình đăng nhập");
-            ModelState.AddModelError("", "Đã xảy ra lỗi trong quá trình đăng nhập. Vui lòng thử lại sau.");
+            var randomNumber = new byte[32];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
         }
-        return View();
-    }
-    [HttpPost]
-    public IActionResult Logout()
-    {
-        HttpContext.Session.Clear();
-        return Json(new { success = true, redirectUrl = Url.Action("Login", "Account") });
+
+        private void SetTokenCookies(string accessToken, string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax
+            };
+
+            cookieOptions.Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationInMinutes);
+            Response.Cookies.Append("X-Access-Token", accessToken, cookieOptions);
+
+            cookieOptions.Expires = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationInDays);
+            Response.Cookies.Append("X-Refresh-Token", refreshToken, cookieOptions);
+        }
+
+        private void RemoveTokenCookies()
+        {
+            Response.Cookies.Delete("X-Access-Token");
+            Response.Cookies.Delete("X-Refresh-Token");
+        }
     }
 }

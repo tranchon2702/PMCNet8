@@ -13,7 +13,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PMCNet8.Controllers
 {
-    public class CourseActivityController : Controller
+    public class CourseActivityController : BaseController
     {
         private readonly LogActionDbContext _logActionDbContext;
         private readonly Medihub4rumDbContext _mediHub4RumContext;
@@ -41,9 +41,9 @@ namespace PMCNet8.Controllers
 
         public async Task<IActionResult> Index()
         {
-            if (!Guid.TryParse(HttpContext.Session.GetString("SponsorId"), out Guid sponsorId))
+            var sponsorId = GetSponsorId();  
+            if (sponsorId == Guid.Empty)
             {
-                //return BadRequest("Invalid SponsorId");
                 return RedirectToAction("Login", "Account");
             }
 
