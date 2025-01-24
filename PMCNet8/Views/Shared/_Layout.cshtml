@@ -306,7 +306,7 @@
             <!-- Left navbar links -->
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <span class="brand-text font-weight-light">@User.FindFirst("SponsorName")?.Value</span>
+                   @*  <span class="brand-text font-weight-light">@User.FindFirst("SponsorName")?.Value</span> *@
                 </li>
             </ul>
 
@@ -330,7 +330,7 @@
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="#" class="brand-link text-center">
-                <span class="brand-text font-weight-light">@Context.Session.GetString("SponsorName")</span>
+                <span class="brand-text font-weight-light">@User.FindFirst("SponsorName")?.Value</span>
             </a>
 
             <!-- Sidebar -->
@@ -416,6 +416,12 @@
 </html>
 
 <script>
+    $(document).ajaxError(function(event, jqXHR) {
+        if (jqXHR.status === 401) {
+            window.location.href = '/Account/Login';
+        }
+    });
+
     $("#logoutButton").click(function(e) {
         e.preventDefault();
         $.ajax({

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Data.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PMCNet8.Controllers
 {
+    [Authorize]
     public class CourseActivityController : BaseController
     {
         private readonly LogActionDbContext _logActionDbContext;

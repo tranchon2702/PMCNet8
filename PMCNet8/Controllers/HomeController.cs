@@ -34,6 +34,10 @@ namespace PMCNet8.Controllers
             {
                 return RedirectToAction("Login", "Account");
             }
+            if (!HasHub())  
+            {
+                return RedirectToAction("Index", "Sale");
+            }
             var model = new HomeViewModel
             {
                 AvailableCourseTypes = await GetAvailableCourseTypesAsync(sponsorId)
